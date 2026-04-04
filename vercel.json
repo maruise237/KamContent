@@ -1,0 +1,11 @@
+{
+  "framework": "nextjs",
+  "buildCommand": "next build",
+  "outputDirectory": ".next",
+  "crons": [
+    {
+      "path": "/api/telegram-notify",
+      "schedule": "0 9 * * *"
+    }
+  ]
+}
