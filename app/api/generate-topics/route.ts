@@ -1,35 +1,38 @@
 import { NextResponse } from 'next/server'
-import Anthropic from '@anthropic-ai/sdk'
-import { createClient } from '@/lib/supabase/server'
+import { generateText } from 'ai'
+import { auth } from '@clerk/nextjs/server'
+import { eq, and } from 'drizzle-orm'
+import { db } from '@/lib/db'
+import { profiles, topics } from '@/lib/db/schema'
+import { getAIModel } from '@/lib/ai/provider'
 import { buildTopicsPrompt } from '@/lib/claude/prompts'
 import { getISOWeekNumber } from '@/lib/utils'
 
-const anthropic = new Anthropic({
-  apiKey: process.env.ANTHROPIC_API_KEY,
-})
-
 /**
  * POST /api/generate-topics
- * Génère 15 sujets de contenu pour la semaine via Claude
+ * Génère 15 sujets de contenu pour la semaine via l'IA configurée
  */
 export async function POST() {
   try {
-    const supabase = await createClient()
-    const { data: { user }, error: authError } = await supabase.auth.getUser()
-
-    if (authError || !user) {
+    const { userId } = await auth()
+    if (!userId) {
       return NextResponse.json({ error: 'Non authentifié' }, { status: 401 })
     }
 
-    // Récupération du profil utilisateur
-    const { data: profile, error: profileError } = await supabase
-      .from('profiles')
-      .select('niches, channels, languages')
-      .eq('id', user.id)
-      .single()
+    // Récupération du profil
+    const [profile] = await db
+      .select()
+      .from(profiles)
+      .where(eq(profiles.id, userId))
+      .limit(1)
 
-    if (profileError || !profile) {
-      return NextResponse.json({ error: 'Profil introuvable' }, { status: 404 })
+    if (!profile) {
+      // Création automatique du profil si inexistant
+      await db.insert(profiles).values({ id: userId }).onConflictDoNothing()
+      return NextResponse.json(
+        { error: 'Complète ton profil (niches, canaux, langues) avant de générer des sujets' },
+        { status: 400 }
+      )
     }
 
     if (!profile.niches?.length || !profile.channels?.length || !profile.languages?.length) {
@@ -39,49 +42,38 @@ export async function POST() {
       )
     }
 
-    // Recherche de tendances via Tavily (optionnel)
+    // Recherche de tendances via SearXNG (optionnel)
     const trends: string[] = []
-    if (process.env.TAVILY_API_KEY) {
-      try {
-        const tavilyRes = await fetch('https://api.tavily.com/search', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            api_key: process.env.TAVILY_API_KEY,
-            query: `tendances ${profile.niches.join(' ')} contenu créateurs 2025`,
-            search_depth: 'basic',
-            max_results: 5,
-          }),
-        })
-        if (tavilyRes.ok) {
-          const tavilyData = await tavilyRes.json()
-          tavilyData.results?.forEach((r: { title: string }) => {
-            if (r.title) trends.push(r.title)
-          })
+    const searxngUrl = process.env.SEARXNG_URL ?? 'http://searxng:8080'
+
+    try {
+      const query = encodeURIComponent(`tendances ${profile.niches.join(' ')} créateurs contenu 2025`)
+      const res = await fetch(
+        `${searxngUrl}/search?q=${query}&format=json&language=fr&time_range=week&categories=general`,
+        {
+          headers: { Accept: 'application/json' },
+          signal: AbortSignal.timeout(5000), // 5s max
         }
-      } catch {
-        // On continue sans les tendances si Tavily échoue
+      )
+      if (res.ok) {
+        const data = await res.json()
+        const results = data.results ?? []
+        results.slice(0, 5).forEach((r: { title?: string }) => {
+          if (r.title) trends.push(r.title)
+        })
       }
+    } catch {
+      // SearXNG indisponible — on continue sans les tendances
     }
 
-    // Génération via Claude
-    const prompt = buildTopicsPrompt(
-      profile.niches,
-      profile.channels,
-      profile.languages,
-      trends
-    )
+    // Génération via le fournisseur IA configuré
+    const prompt = buildTopicsPrompt(profile.niches, profile.channels, profile.languages, trends)
 
-    const message = await anthropic.messages.create({
-      model: 'claude-sonnet-4-20250514',
-      max_tokens: 4096,
-      messages: [{ role: 'user', content: prompt }],
+    const { text } = await generateText({
+      model: getAIModel(),
+      prompt,
+      maxTokens: 4096,
     })
-
-    const content = message.content[0]
-    if (content.type !== 'text') {
-      throw new Error('Réponse Claude invalide')
-    }
 
     // Parse du JSON
     let rawTopics: Array<{
@@ -95,49 +87,45 @@ export async function POST() {
     }>
 
     try {
-      const text = content.text.trim()
       const jsonStart = text.indexOf('[')
       const jsonEnd = text.lastIndexOf(']') + 1
       rawTopics = JSON.parse(text.slice(jsonStart, jsonEnd))
     } catch {
-      throw new Error('Impossible de parser la réponse Claude')
+      throw new Error('Impossible de parser la réponse IA')
     }
 
-    // Suppression des anciens sujets non sélectionnés de la semaine
     const weekNumber = getISOWeekNumber(new Date())
-    await supabase
-      .from('topics')
-      .delete()
-      .eq('user_id', user.id)
-      .eq('week_number', weekNumber)
-      .eq('status', 'idea')
 
-    // Sauvegarde en base
-    const topicsToInsert = rawTopics.slice(0, 15).map((t) => ({
-      user_id: user.id,
+    // Suppression des anciens sujets non planifiés de la semaine
+    await db
+      .delete(topics)
+      .where(
+        and(
+          eq(topics.userId, userId),
+          eq(topics.weekNumber, weekNumber),
+          eq(topics.status, 'idea')
+        )
+      )
+
+    // Insertion des nouveaux sujets
+    const toInsert = rawTopics.slice(0, 15).map((t) => ({
+      userId,
       title: t.title,
       hook: t.hook,
       angle: t.angle,
       niche: t.niche,
-      channel: t.channel as 'tiktok' | 'youtube' | 'whatsapp',
-      language: t.language as 'fr' | 'en',
-      format: t.format as 'short' | 'long' | 'text',
+      channel: t.channel,
+      language: t.language,
+      format: t.format,
       status: 'idea' as const,
       selected: false,
-      week_number: weekNumber,
+      weekNumber,
     }))
 
-    const { data: savedTopics, error: insertError } = await supabase
-      .from('topics')
-      .insert(topicsToInsert)
-      .select()
-
-    if (insertError) {
-      throw new Error(`Erreur sauvegarde : ${insertError.message}`)
-    }
+    const saved = await db.insert(topics).values(toInsert).returning()
 
     return NextResponse.json({
-      topics: savedTopics,
+      topics: saved,
       generated_at: new Date().toISOString(),
     })
   } catch (error) {

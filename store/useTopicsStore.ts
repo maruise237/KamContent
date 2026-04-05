@@ -1,5 +1,5 @@
 import { create } from 'zustand'
-import type { Topic, Script } from '@/types/database'
+import type { Topic, Script } from '@/lib/db/schema'
 
 interface TopicsState {
   topics: Topic[]

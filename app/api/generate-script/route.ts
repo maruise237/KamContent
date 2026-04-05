@@ -1,12 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server'
-import Anthropic from '@anthropic-ai/sdk'
+import { generateText } from 'ai'
+import { auth } from '@clerk/nextjs/server'
+import { eq, and } from 'drizzle-orm'
 import { z } from 'zod'
-import { createClient } from '@/lib/supabase/server'
+import { db } from '@/lib/db'
+import { topics, scripts } from '@/lib/db/schema'
+import { getAIModel } from '@/lib/ai/provider'
 import { buildScriptPrompt } from '@/lib/claude/prompts'
-
-const anthropic = new Anthropic({
-  apiKey: process.env.ANTHROPIC_API_KEY,
-})
 
 const bodySchema = z.object({
   topicId: z.string().uuid(),
@@ -18,29 +18,26 @@ const bodySchema = z.object({
  */
 export async function POST(request: NextRequest) {
   try {
-    const body = await request.json()
-    const { topicId } = bodySchema.parse(body)
-
-    const supabase = await createClient()
-    const { data: { user }, error: authError } = await supabase.auth.getUser()
-
-    if (authError || !user) {
+    const { userId } = await auth()
+    if (!userId) {
       return NextResponse.json({ error: 'Non authentifié' }, { status: 401 })
     }
 
-    // Récupération du sujet
-    const { data: topic, error: topicError } = await supabase
-      .from('topics')
-      .select('*')
-      .eq('id', topicId)
-      .eq('user_id', user.id)
-      .single()
+    const body = await request.json()
+    const { topicId } = bodySchema.parse(body)
 
-    if (topicError || !topic) {
+    // Récupération du sujet
+    const [topic] = await db
+      .select()
+      .from(topics)
+      .where(and(eq(topics.id, topicId), eq(topics.userId, userId)))
+      .limit(1)
+
+    if (!topic) {
       return NextResponse.json({ error: 'Sujet introuvable' }, { status: 404 })
     }
 
-    // Génération via Claude
+    // Génération via le fournisseur IA configuré
     const prompt = buildScriptPrompt(
       topic.title,
       topic.hook,
@@ -50,16 +47,11 @@ export async function POST(request: NextRequest) {
       topic.language
     )
 
-    const message = await anthropic.messages.create({
-      model: 'claude-sonnet-4-20250514',
-      max_tokens: 2048,
-      messages: [{ role: 'user', content: prompt }],
+    const { text } = await generateText({
+      model: getAIModel(),
+      prompt,
+      maxTokens: 2048,
     })
-
-    const content = message.content[0]
-    if (content.type !== 'text') {
-      throw new Error('Réponse Claude invalide')
-    }
 
     // Parse du JSON
     let scriptData: {
@@ -71,41 +63,35 @@ export async function POST(request: NextRequest) {
     }
 
     try {
-      const text = content.text.trim()
       const jsonStart = text.indexOf('{')
       const jsonEnd = text.lastIndexOf('}') + 1
       scriptData = JSON.parse(text.slice(jsonStart, jsonEnd))
     } catch {
-      throw new Error('Impossible de parser la réponse Claude')
+      throw new Error('Impossible de parser la réponse IA')
     }
 
-    // Suppression d'un script existant
-    await supabase.from('scripts').delete().eq('topic_id', topicId)
+    // Suppression d'un script existant pour ce sujet
+    await db.delete(scripts).where(eq(scripts.topicId, topicId))
 
-    // Sauvegarde du script
-    const { data: savedScript, error: scriptError } = await supabase
-      .from('scripts')
-      .insert({
-        topic_id: topicId,
-        user_id: user.id,
+    // Sauvegarde du nouveau script
+    const [savedScript] = await db
+      .insert(scripts)
+      .values({
+        topicId,
+        userId,
         intro: scriptData.intro,
         points: scriptData.points,
         outro: scriptData.outro,
         cta: scriptData.cta,
-        duration_estimate: scriptData.duration_estimate ?? null,
+        durationEstimate: scriptData.duration_estimate ?? null,
       })
-      .select()
-      .single()
-
-    if (scriptError) {
-      throw new Error(`Erreur sauvegarde : ${scriptError.message}`)
-    }
+      .returning()
 
     // Mise à jour du statut du sujet
-    await supabase
-      .from('topics')
-      .update({ status: 'scripted' })
-      .eq('id', topicId)
+    await db
+      .update(topics)
+      .set({ status: 'scripted' })
+      .where(eq(topics.id, topicId))
 
     return NextResponse.json({ script: savedScript })
   } catch (error) {

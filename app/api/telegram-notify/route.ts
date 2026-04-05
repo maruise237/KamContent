@@ -1,12 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createServerClient } from '@supabase/ssr'
+import { auth } from '@clerk/nextjs/server'
+import { eq, desc, and, inArray } from 'drizzle-orm'
+import { db } from '@/lib/db'
+import { profiles, publications, topics } from '@/lib/db/schema'
 import { sendTelegramMessage, buildReminderMessage } from '@/lib/telegram/notify'
 import { getISOWeekNumber } from '@/lib/utils'
 
 /**
  * POST /api/telegram-notify
- * Cron job quotidien : envoie des rappels aux utilisateurs inactifs depuis 48h
- * Aussi utilisé pour tester la connexion Telegram depuis Settings
+ * - Mode test : {"type":"test","chatId":"..."} — teste la connexion
+ * - Mode cron (pas de body) : envoie des rappels aux utilisateurs inactifs depuis 48h
  */
 export async function POST(request: NextRequest) {
   try {
@@ -21,54 +24,54 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ ok })
     }
 
-    // Mode cron : vérification de tous les utilisateurs actifs
-    const supabase = createServerClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.SUPABASE_SERVICE_ROLE_KEY!,
-      { cookies: { getAll: () => [], setAll: () => {} } }
-    )
-
-    const { data: profiles } = await supabase
-      .from('profiles')
-      .select('id, full_name, telegram_chat_id')
-      .not('telegram_chat_id', 'is', null)
-
-    if (!profiles?.length) {
-      return NextResponse.json({ message: 'Aucun utilisateur Telegram configuré' })
+    // Mode cron — on vérifie via le header secret
+    const cronSecret = request.headers.get('x-cron-secret')
+    if (cronSecret !== process.env.CRON_SECRET && process.env.CRON_SECRET) {
+      return NextResponse.json({ error: 'Non autorisé' }, { status: 401 })
     }
+
+    // Récupération de tous les profils avec Telegram configuré
+    const allProfiles = await db
+      .select()
+      .from(profiles)
+      .where(and(
+        // telegram_chat_id IS NOT NULL — on filtre après
+      ))
+
+    const activeProfiles = allProfiles.filter((p) => !!p.telegramChatId)
 
     let notified = 0
     const twoDaysAgo = new Date()
     twoDaysAgo.setDate(twoDaysAgo.getDate() - 2)
 
-    for (const profile of profiles) {
-      if (!profile.telegram_chat_id) continue
+    for (const profile of activeProfiles) {
+      if (!profile.telegramChatId) continue
 
       // Dernière publication
-      const { data: lastPub } = await supabase
-        .from('publications')
-        .select('published_at')
-        .eq('user_id', profile.id)
-        .order('published_at', { ascending: false })
+      const [lastPub] = await db
+        .select({ publishedAt: publications.publishedAt })
+        .from(publications)
+        .where(eq(publications.userId, profile.id))
+        .orderBy(desc(publications.publishedAt))
         .limit(1)
-        .single()
 
-      const lastPubDate = lastPub ? new Date(lastPub.published_at) : null
+      const lastPubDate = lastPub ? new Date(lastPub.publishedAt) : null
       const shouldNotify = !lastPubDate || lastPubDate < twoDaysAgo
-
       if (!shouldNotify) continue
 
       // Prochain sujet planifié
       const weekNumber = getISOWeekNumber(new Date())
-      const { data: nextTopic } = await supabase
-        .from('topics')
-        .select('title')
-        .eq('user_id', profile.id)
-        .eq('week_number', weekNumber)
-        .in('status', ['planned', 'scripted'])
-        .order('created_at')
+      const [nextTopic] = await db
+        .select({ title: topics.title })
+        .from(topics)
+        .where(
+          and(
+            eq(topics.userId, profile.id),
+            eq(topics.weekNumber, weekNumber),
+            inArray(topics.status, ['planned', 'scripted'])
+          )
+        )
         .limit(1)
-        .single()
 
       if (!nextTopic) continue
 
@@ -76,10 +79,9 @@ export async function POST(request: NextRequest) {
         ? Math.floor((Date.now() - lastPubDate.getTime()) / 86400000)
         : 2
 
-      const name = profile.full_name ?? 'Créateur'
       await sendTelegramMessage(
-        profile.telegram_chat_id,
-        buildReminderMessage(name, nextTopic.title, daysSince)
+        profile.telegramChatId,
+        buildReminderMessage(profile.fullName ?? 'Créateur', nextTopic.title, daysSince)
       )
       notified++
     }

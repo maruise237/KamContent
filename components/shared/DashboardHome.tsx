@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button'
 import { Progress } from '@/components/ui/progress'
 import { StatusBadge } from '@/components/shared/StatusBadge'
 import { ChannelBadge } from '@/components/shared/ChannelBadge'
-import type { Topic } from '@/types/database'
+import type { Topic } from '@/lib/db/schema'
 
 interface DashboardHomeProps {
   userName: string

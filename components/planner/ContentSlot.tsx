@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { StatusBadge } from '@/components/shared/StatusBadge'
 import { ChannelBadge } from '@/components/shared/ChannelBadge'
-import type { Topic, Script, ScriptPoint } from '@/types/database'
+import type { Topic, Script, ScriptPoint } from '@/lib/db/schema'
 
 interface ContentSlotProps {
   topic: Topic
@@ -112,9 +112,9 @@ export function ContentSlot({
                 <p className="leading-relaxed font-medium">{script.cta}</p>
               </div>
 
-              {script.duration_estimate && (
+              {script.durationEstimate && (
                 <p className="text-xs text-muted-foreground text-right">
-                  Durée estimée : ~{Math.ceil(script.duration_estimate / 60)} min
+                  Durée estimée : ~{Math.ceil(script.durationEstimate / 60)} min
                 </p>
               )}
             </div>
