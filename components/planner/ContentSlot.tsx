@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { Loader2, FileText, CheckSquare, Eye } from 'lucide-react'
+import { Loader2, FileText, CheckSquare, Eye, Trash2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { StatusBadge } from '@/components/shared/StatusBadge'
@@ -13,6 +13,7 @@ interface ContentSlotProps {
   script: Script | null
   onGenerateScript: (topicId: string) => Promise<void>
   onMarkPublished: (topicId: string) => void
+  onDelete: (topicId: string) => void
   generatingScript: string | null
 }
 
@@ -21,15 +22,33 @@ export function ContentSlot({
   script,
   onGenerateScript,
   onMarkPublished,
+  onDelete,
   generatingScript,
 }: ContentSlotProps) {
   const [showScript, setShowScript] = useState(false)
+  const [deleting, setDeleting] = useState(false)
   const isGenerating = generatingScript === topic.id
+
+  async function handleDelete() {
+    setDeleting(true)
+    await fetch(`/api/topics?id=${topic.id}`, { method: 'DELETE' })
+    onDelete(topic.id)
+  }
 
   return (
     <>
       <div className="rounded-md border border-border/60 bg-background/50 p-2.5 space-y-2">
-        <p className="text-xs font-medium leading-tight line-clamp-2">{topic.title}</p>
+        <div className="flex items-start justify-between gap-1">
+          <p className="text-xs font-medium leading-tight line-clamp-2 flex-1">{topic.title}</p>
+          <button
+            onClick={handleDelete}
+            disabled={deleting}
+            className="text-muted-foreground/40 hover:text-destructive transition-colors shrink-0 mt-0.5"
+            title="Supprimer"
+          >
+            <Trash2 className="h-3 w-3" />
+          </button>
+        </div>
 
         <div className="flex items-center gap-1 flex-wrap">
           <StatusBadge status={topic.status} />
