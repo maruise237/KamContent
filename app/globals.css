@@ -55,8 +55,8 @@
   * {
     @apply border-border;
   }
-  body {
-    @apply bg-background text-foreground font-sans;
+  html, body {
+    @apply bg-background text-foreground font-sans h-screen overflow-hidden;
   }
   h1, h2, h3, h4, h5, h6 {
     @apply font-display;
