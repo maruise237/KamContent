@@ -1,11 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@clerk/nextjs/server'
-import { eq, and, inArray } from 'drizzle-orm'
+import { eq, and } from 'drizzle-orm'
 import { z } from 'zod'
 import { db } from '@/lib/db'
-import { profiles, topics, publications } from '@/lib/db/schema'
+import { profiles, topics, publications, channelConnections } from '@/lib/db/schema'
 import { sendTelegramMessage, buildCongratsMessage } from '@/lib/telegram/notify'
+import { sendWhatsAppNotification, buildWhatsAppCongratsMessage } from '@/lib/whatsapp/notify'
 import { getISOWeekNumber, calculateConsistencyScore } from '@/lib/utils'
+import type { WhatsAppConfig } from '@/lib/db/schema'
 
 const bodySchema = z.object({
   topicId: z.string().uuid(),
@@ -15,7 +17,7 @@ const bodySchema = z.object({
 
 /**
  * POST /api/publish-content
- * Enregistre une publication, recalcule streak + score, envoie notif Telegram
+ * Enregistre une publication, recalcule streak + score, envoie notifs Telegram + WhatsApp
  */
 export async function POST(request: NextRequest) {
   try {
@@ -86,13 +88,33 @@ export async function POST(request: NextRequest) {
     const last4 = [currentWeek, currentWeek - 1, currentWeek - 2, currentWeek - 3]
     const monthlyPubs = last4.reduce((sum, wk) => sum + (pubsByWeek[wk] ?? 0), 0)
     const consistencyScore = calculateConsistencyScore(monthlyPubs, targetFreq * 4)
+    const name = profile?.fullName ?? 'Créateur'
 
     // Notification Telegram
     if (profile?.telegramChatId) {
       await sendTelegramMessage(
         profile.telegramChatId,
-        buildCongratsMessage(profile.fullName ?? 'Créateur', streak, consistencyScore)
+        buildCongratsMessage(name, streak, consistencyScore)
       )
+    }
+
+    // Notification WhatsApp
+    const [waConn] = await db
+      .select()
+      .from(channelConnections)
+      .where(and(eq(channelConnections.userId, userId), eq(channelConnections.channel, 'whatsapp')))
+      .limit(1)
+
+    if (waConn && waConn.status === 'connected') {
+      const waConfig = waConn.config as WhatsAppConfig
+      const phoneNumber = waConfig.phoneNumber
+      if (phoneNumber) {
+        await sendWhatsAppNotification(
+          waConfig,
+          phoneNumber,
+          buildWhatsAppCongratsMessage(name, streak, consistencyScore)
+        )
+      }
     }
 
     return NextResponse.json({ publication, streak, consistency_score: consistencyScore })

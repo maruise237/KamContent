@@ -5,7 +5,7 @@ import { useForm, Controller } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { motion } from 'framer-motion'
-import { Loader2, Save, Send, CheckCircle } from 'lucide-react'
+import { Loader2, Save, CheckCircle } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -26,7 +26,6 @@ const settingsSchema = z.object({
   channels: z.array(z.string()).min(1, 'Sélectionne au moins un canal'),
   languages: z.array(z.string()).min(1, 'Sélectionne au moins une langue'),
   targetFrequency: z.number().min(1).max(7),
-  telegramChatId: z.string().optional(),
 })
 
 type SettingsForm = z.infer<typeof settingsSchema>
@@ -49,12 +48,10 @@ function ToggleChip({ value, selected, onToggle, label }: {
 export default function SettingsPage() {
   const [loading, setLoading] = useState(false)
   const [saved, setSaved] = useState(false)
-  const [telegramTesting, setTelegramTesting] = useState(false)
-  const [telegramResult, setTelegramResult] = useState<'success' | 'error' | null>(null)
 
   const { register, handleSubmit, control, setValue, watch, reset, formState: { errors } } = useForm<SettingsForm>({
     resolver: zodResolver(settingsSchema),
-    defaultValues: { fullName: '', niches: [], channels: [], languages: [], targetFrequency: 3, telegramChatId: '' },
+    defaultValues: { fullName: '', niches: [], channels: [], languages: [], targetFrequency: 3 },
   })
 
   const niches = watch('niches')
@@ -70,7 +67,6 @@ export default function SettingsPage() {
           channels: profile.channels ?? [],
           languages: profile.languages ?? [],
           targetFrequency: profile.targetFrequency ?? 3,
-          telegramChatId: profile.telegramChatId ?? '',
         })
       }
     })
@@ -94,7 +90,6 @@ export default function SettingsPage() {
         channels: data.channels,
         languages: data.languages,
         targetFrequency: data.targetFrequency,
-        telegramChatId: data.telegramChatId || null,
       }),
     })
 
@@ -102,26 +97,6 @@ export default function SettingsPage() {
     if (res.ok) {
       setSaved(true)
       setTimeout(() => setSaved(false), 3000)
-    }
-  }
-
-  async function testTelegram() {
-    const chatId = watch('telegramChatId')
-    if (!chatId) return
-    setTelegramTesting(true)
-    setTelegramResult(null)
-
-    try {
-      const res = await fetch('/api/telegram-notify', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ chatId, type: 'test' }),
-      })
-      setTelegramResult(res.ok ? 'success' : 'error')
-    } catch {
-      setTelegramResult('error')
-    } finally {
-      setTelegramTesting(false)
     }
   }
 
@@ -202,29 +177,6 @@ export default function SettingsPage() {
                   </SelectContent>
                 </Select>
               )} />
-            </CardContent>
-          </Card>
-        </motion.div>
-
-        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.35 }}>
-          <Card>
-            <CardHeader>
-              <CardTitle>Notifications Telegram</CardTitle>
-              <CardDescription>Reçois des rappels sur Telegram. Utilise @userinfobot pour obtenir ton Chat ID.</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="telegramChatId">Chat ID Telegram</Label>
-                <div className="flex gap-2">
-                  <Input id="telegramChatId" {...register('telegramChatId')} placeholder="123456789" className="flex-1" />
-                  <Button type="button" variant="outline" onClick={testTelegram} disabled={telegramTesting || !watch('telegramChatId')}>
-                    {telegramTesting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
-                    <span className="ml-2">Tester</span>
-                  </Button>
-                </div>
-                {telegramResult === 'success' && <p className="text-sm text-green-500 flex items-center gap-1"><CheckCircle className="h-4 w-4" /> Message envoyé !</p>}
-                {telegramResult === 'error' && <p className="text-sm text-destructive">Erreur : vérifie ton Chat ID</p>}
-              </div>
             </CardContent>
           </Card>
         </motion.div>

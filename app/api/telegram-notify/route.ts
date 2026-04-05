@@ -1,21 +1,22 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { auth } from '@clerk/nextjs/server'
 import { eq, desc, and, inArray } from 'drizzle-orm'
 import { db } from '@/lib/db'
-import { profiles, publications, topics } from '@/lib/db/schema'
+import { profiles, publications, topics, channelConnections } from '@/lib/db/schema'
 import { sendTelegramMessage, buildReminderMessage } from '@/lib/telegram/notify'
+import { sendWhatsAppNotification, buildWhatsAppReminderMessage } from '@/lib/whatsapp/notify'
 import { getISOWeekNumber } from '@/lib/utils'
+import type { WhatsAppConfig } from '@/lib/db/schema'
 
 /**
  * POST /api/telegram-notify
- * - Mode test : {"type":"test","chatId":"..."} — teste la connexion
+ * - Mode test : {"type":"test","chatId":"..."} — teste la connexion Telegram
  * - Mode cron (pas de body) : envoie des rappels aux utilisateurs inactifs depuis 48h
  */
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json().catch(() => ({}))
 
-    // Mode test depuis Settings
+    // Mode test depuis la page Canaux
     if (body.type === 'test' && body.chatId) {
       const ok = await sendTelegramMessage(
         body.chatId,
@@ -30,22 +31,31 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Non autorisé' }, { status: 401 })
     }
 
-    // Récupération de tous les profils avec Telegram configuré
-    const allProfiles = await db
-      .select()
-      .from(profiles)
-      .where(and(
-        // telegram_chat_id IS NOT NULL — on filtre après
-      ))
-
-    const activeProfiles = allProfiles.filter((p) => !!p.telegramChatId)
+    // Récupération de tous les profils
+    const allProfiles = await db.select().from(profiles)
 
     let notified = 0
     const twoDaysAgo = new Date()
     twoDaysAgo.setDate(twoDaysAgo.getDate() - 2)
 
-    for (const profile of activeProfiles) {
-      if (!profile.telegramChatId) continue
+    for (const profile of allProfiles) {
+      // Vérifier les connexions actives de ce profil
+      const connections = await db
+        .select()
+        .from(channelConnections)
+        .where(and(
+          eq(channelConnections.userId, profile.id),
+          inArray(channelConnections.channel, ['telegram', 'whatsapp'])
+        ))
+
+      const telegramConn = connections.find((c) => c.channel === 'telegram' && c.status === 'connected')
+      const waConn = connections.find((c) => c.channel === 'whatsapp' && c.status === 'connected')
+
+      // Compatibilité arrière : utiliser telegramChatId du profil si pas de connexion
+      const hasTelegram = !!telegramConn || !!profile.telegramChatId
+      const hasWhatsApp = !!waConn
+
+      if (!hasTelegram && !hasWhatsApp) continue
 
       // Dernière publication
       const [lastPub] = await db
@@ -78,11 +88,27 @@ export async function POST(request: NextRequest) {
       const daysSince = lastPubDate
         ? Math.floor((Date.now() - lastPubDate.getTime()) / 86400000)
         : 2
+      const name = profile.fullName ?? 'Créateur'
 
-      await sendTelegramMessage(
-        profile.telegramChatId,
-        buildReminderMessage(profile.fullName ?? 'Créateur', nextTopic.title, daysSince)
-      )
+      // Notification Telegram
+      const chatId = (telegramConn?.config as { chatId?: string } | undefined)?.chatId ?? profile.telegramChatId
+      if (chatId) {
+        await sendTelegramMessage(chatId, buildReminderMessage(name, nextTopic.title, daysSince))
+      }
+
+      // Notification WhatsApp
+      if (waConn) {
+        const waConfig = waConn.config as WhatsAppConfig
+        const phoneNumber = waConfig.phoneNumber
+        if (phoneNumber) {
+          await sendWhatsAppNotification(
+            waConfig,
+            phoneNumber,
+            buildWhatsAppReminderMessage(name, nextTopic.title, daysSince)
+          )
+        }
+      }
+
       notified++
     }
 

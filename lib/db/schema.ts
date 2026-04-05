@@ -103,6 +103,28 @@ export const publicationsRelations = relations(publications, ({ one }) => ({
   profile: one(profiles, { fields: [publications.userId], references: [profiles.id] }),
 }))
 
+/**
+ * Connexions aux canaux de notification
+ * channel : 'telegram' | 'whatsapp'
+ * status  : 'connected' | 'disconnected' | 'pending'
+ * config (telegram) : { chatId: string }
+ * config (whatsapp) : { instanceName: string, phoneNumber?: string }
+ */
+export const channelConnections = pgTable('channel_connections', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  userId: text('user_id')
+    .notNull()
+    .references(() => profiles.id, { onDelete: 'cascade' }),
+  channel: text('channel').notNull(), // 'telegram' | 'whatsapp'
+  status: text('status').notNull().default('disconnected'),
+  config: jsonb('config').notNull().default({}),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+})
+
+export const channelConnectionsRelations = relations(channelConnections, ({ one }) => ({
+  profile: one(profiles, { fields: [channelConnections.userId], references: [profiles.id] }),
+}))
+
 // Types exportés
 export type Profile = typeof profiles.$inferSelect
 export type NewProfile = typeof profiles.$inferInsert
@@ -112,6 +134,11 @@ export type Script = typeof scripts.$inferSelect
 export type NewScript = typeof scripts.$inferInsert
 export type Publication = typeof publications.$inferSelect
 export type NewPublication = typeof publications.$inferInsert
+export type ChannelConnection = typeof channelConnections.$inferSelect
+export type NewChannelConnection = typeof channelConnections.$inferInsert
+
+export interface TelegramConfig { chatId: string }
+export interface WhatsAppConfig { instanceName: string; phoneNumber?: string }
 
 export interface ScriptPoint {
   order: number
