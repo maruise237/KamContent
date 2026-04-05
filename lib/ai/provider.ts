@@ -9,7 +9,7 @@ import type { LanguageModelV1 } from 'ai'
  * Fournisseurs IA supportés
  *
  * Configuration via variables d'environnement :
- *   AI_PROVIDER=anthropic | openai | google | mistral | ollama | openrouter | custom
+ *   AI_PROVIDER=anthropic | openai | google | mistral | deepseek | ollama | openrouter | custom
  *   AI_MODEL=nom-du-modèle (ex: claude-sonnet-4-20250514, gpt-4o, gemini-2.0-flash)
  *
  * Pour ollama (local) :
@@ -44,6 +44,16 @@ export function getAIModel(): LanguageModelV1 {
 
     case 'mistral':
       return mistral(model)
+
+    case 'deepseek': {
+      // DeepSeek — API compatible OpenAI
+      // Modèles : deepseek-chat (V3), deepseek-reasoner (R1)
+      const deepseekClient = createOpenAI({
+        baseURL: 'https://api.deepseek.com/v1',
+        apiKey: process.env.AI_API_KEY ?? process.env.DEEPSEEK_API_KEY ?? '',
+      })
+      return deepseekClient(model)
+    }
 
     case 'ollama': {
       // Ollama est compatible OpenAI API
@@ -86,6 +96,7 @@ function getDefaultModel(provider: string): string {
     openai: 'gpt-4o-mini',
     google: 'gemini-2.0-flash',
     mistral: 'mistral-small-latest',
+    deepseek: 'deepseek-chat', // deepseek-chat (V3) ou deepseek-reasoner (R1)
     ollama: 'llama3.2',
     openrouter: 'anthropic/claude-sonnet-4-20250514',
     custom: 'gpt-4o-mini',
