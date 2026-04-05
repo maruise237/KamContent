@@ -6,7 +6,7 @@ import { cn, FORMAT_LABELS, FORMAT_COLORS } from '@/lib/utils'
 import { ChannelBadge } from '@/components/shared/ChannelBadge'
 import { LanguageBadge } from '@/components/shared/LanguageBadge'
 import { NicheBadge } from '@/components/shared/NicheBadge'
-import type { Topic } from '@/types/database'
+import type { Topic } from '@/lib/db/schema'
 
 interface TopicCardProps {
   topic: Topic

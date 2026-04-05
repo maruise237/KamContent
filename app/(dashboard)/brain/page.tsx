@@ -7,9 +7,8 @@ import { AlertCircle, Check } from 'lucide-react'
 import { GenerateButton } from '@/components/brain/GenerateButton'
 import { TopicGrid } from '@/components/brain/TopicGrid'
 import { Button } from '@/components/ui/button'
-import { createClient } from '@/lib/supabase/client'
 import { getISOWeekNumber } from '@/lib/utils'
-import type { Topic } from '@/types/database'
+import type { Topic } from '@/lib/db/schema'
 
 const MAX_SELECTION = 3
 
@@ -24,34 +23,20 @@ export default function BrainPage() {
 
   useEffect(() => {
     async function loadExistingTopics() {
-      const supabase = createClient()
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) return
+      const res = await fetch('/api/profile')
+      const { profile } = await res.json()
 
-      // Vérification du profil
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('niches, channels, languages')
-        .eq('id', user.id)
-        .single()
-
-      if (!profile || !profile.niches?.length) {
+      if (!profile?.niches?.length) {
         setProfileReady(false)
         return
       }
 
-      // Chargement des sujets de la semaine courante
-      const weekNumber = getISOWeekNumber(new Date())
-      const { data: existing } = await supabase
-        .from('topics')
-        .select('*')
-        .eq('user_id', user.id)
-        .eq('week_number', weekNumber)
-        .order('created_at', { ascending: true })
+      const topicsRes = await fetch('/api/topics?week=current')
+      const { topics: existing } = await topicsRes.json()
 
-      if (existing && existing.length > 0) {
-        setTopics(existing as Topic[])
-        setSelectedIds(existing.filter((t) => t.selected).map((t) => t.id))
+      if (existing?.length > 0) {
+        setTopics(existing)
+        setSelectedIds(existing.filter((t: Topic) => t.selected).map((t: Topic) => t.id))
       }
     }
     loadExistingTopics()
@@ -95,19 +80,22 @@ export default function BrainPage() {
     setConfirming(true)
 
     try {
-      const supabase = createClient()
       const weekNumber = getISOWeekNumber(new Date())
+      const allIds = topics.map((t) => t.id)
 
-      // Marque les sujets sélectionnés comme planned
-      await supabase
-        .from('topics')
-        .update({ selected: false, status: 'idea' })
-        .in('id', topics.map((t) => t.id))
+      // Déselectionner tout
+      await fetch('/api/topics', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ids: allIds, selected: false, status: 'idea' }),
+      })
 
-      await supabase
-        .from('topics')
-        .update({ selected: true, status: 'planned', week_number: weekNumber })
-        .in('id', selectedIds)
+      // Marquer les sélectionnés comme planned
+      await fetch('/api/topics', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ids: selectedIds, selected: true, status: 'planned', weekNumber }),
+      })
 
       router.push('/dashboard/planner')
     } catch {
@@ -136,7 +124,6 @@ export default function BrainPage() {
 
   return (
     <div className="space-y-6">
-      {/* En-tête */}
       <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
         <div>
           <h1 className="font-display text-3xl font-bold">Brain</h1>
@@ -147,7 +134,6 @@ export default function BrainPage() {
         <GenerateButton onClick={handleGenerate} loading={generating} />
       </div>
 
-      {/* Erreur */}
       {error && (
         <div className="rounded-md bg-destructive/10 border border-destructive/30 p-3 flex items-center gap-2">
           <AlertCircle className="h-4 w-4 text-destructive shrink-0" />
@@ -155,22 +141,13 @@ export default function BrainPage() {
         </div>
       )}
 
-      {/* Compteur de sélection */}
       {topics.length > 0 && (
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          className="flex items-center justify-between"
-        >
+        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex items-center justify-between">
           <p className="text-sm text-muted-foreground">
             <span className="font-semibold text-foreground">{selectedIds.length}</span>/{MAX_SELECTION} sujets sélectionnés
           </p>
           {selectedIds.length > 0 && (
-            <Button
-              onClick={handleConfirm}
-              disabled={confirming}
-              className="gap-2"
-            >
+            <Button onClick={handleConfirm} disabled={confirming} className="gap-2">
               <Check className="h-4 w-4" />
               Confirmer la sélection ({selectedIds.length})
             </Button>
@@ -178,21 +155,15 @@ export default function BrainPage() {
         </motion.div>
       )}
 
-      {/* Grille de sujets */}
       {topics.length > 0 ? (
-        <TopicGrid
-          topics={topics}
-          selectedIds={selectedIds}
-          onToggle={handleToggle}
-          maxSelection={MAX_SELECTION}
-        />
+        <TopicGrid topics={topics} selectedIds={selectedIds} onToggle={handleToggle} maxSelection={MAX_SELECTION} />
       ) : (
         <div className="flex flex-col items-center justify-center rounded-lg border border-dashed border-border h-64 gap-3">
           <div className="text-4xl">🧠</div>
           <div className="text-center">
             <p className="font-medium">Aucun sujet pour cette semaine</p>
             <p className="text-sm text-muted-foreground mt-1">
-              Clique sur "Générer les sujets de la semaine" pour commencer
+              Clique sur &quot;Générer les sujets de la semaine&quot; pour commencer
             </p>
           </div>
         </div>

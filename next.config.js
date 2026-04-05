@@ -1,5 +1,7 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  // Mode standalone pour Docker (inclut uniquement les fichiers nécessaires)
+  output: 'standalone',
   experimental: {
     serverActions: {
       allowedOrigins: ['localhost:3000'],
@@ -9,7 +11,11 @@ const nextConfig = {
     remotePatterns: [
       {
         protocol: 'https',
-        hostname: '*.supabase.co',
+        hostname: 'img.clerk.com',
+      },
+      {
+        protocol: 'https',
+        hostname: '*.clerk.accounts.dev',
       },
     ],
   },

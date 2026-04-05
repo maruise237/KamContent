@@ -2,7 +2,7 @@
 
 import { formatDateFr } from '@/lib/utils'
 import { ContentSlot } from './ContentSlot'
-import type { Topic, Script } from '@/types/database'
+import type { Topic, Script } from '@/lib/db/schema'
 
 const DAY_NAMES = ['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim']
 

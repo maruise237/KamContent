@@ -2,7 +2,7 @@
 
 import { motion } from 'framer-motion'
 import { TopicCard } from './TopicCard'
-import type { Topic } from '@/types/database'
+import type { Topic } from '@/lib/db/schema'
 
 interface TopicGridProps {
   topics: Topic[]

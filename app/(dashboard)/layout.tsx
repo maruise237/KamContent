@@ -1,5 +1,6 @@
+export const dynamic = 'force-dynamic'
+import { auth } from '@clerk/nextjs/server'
 import { redirect } from 'next/navigation'
-import { createClient } from '@/lib/supabase/server'
 import { Sidebar } from '@/components/shared/Sidebar'
 import { Header } from '@/components/shared/Header'
 
@@ -8,25 +9,18 @@ export default async function DashboardLayout({
 }: {
   children: React.ReactNode
 }) {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  const { userId } = await auth()
 
-  if (!user) {
+  if (!userId) {
     redirect('/login')
   }
-
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('*')
-    .eq('id', user.id)
-    .single()
 
   return (
     <div className="flex h-screen bg-background overflow-hidden">
       <Sidebar />
       <div className="flex flex-1 flex-col overflow-hidden">
-        <Header user={user} profile={profile} />
-        <main className="flex-1 overflow-y-auto p-6">
+        <Header />
+        <main className="flex-1 overflow-y-auto p-6 pb-20 md:pb-6">
           {children}
         </main>
       </div>

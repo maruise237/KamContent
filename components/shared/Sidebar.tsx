@@ -3,7 +3,7 @@
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { motion } from 'framer-motion'
-import { Zap, Brain, Calendar, BarChart3, Settings, Home } from 'lucide-react'
+import { Zap, Brain, Calendar, BarChart3, Settings, Home, Plug } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 const navItems = [
@@ -11,6 +11,7 @@ const navItems = [
   { href: '/dashboard/brain', icon: Brain, label: 'Brain' },
   { href: '/dashboard/planner', icon: Calendar, label: 'Planner' },
   { href: '/dashboard/tracker', icon: BarChart3, label: 'Tracker' },
+  { href: '/dashboard/channels', icon: Plug, label: 'Canaux' },
   { href: '/dashboard/settings', icon: Settings, label: 'Paramètres' },
 ]
 

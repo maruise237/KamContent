@@ -1,83 +1,81 @@
+export const dynamic = 'force-dynamic'
+import { auth, currentUser } from '@clerk/nextjs/server'
 import { redirect } from 'next/navigation'
-import { createClient } from '@/lib/supabase/server'
+import { eq, desc, gte } from 'drizzle-orm'
+import { db } from '@/lib/db'
+import { profiles, topics, publications } from '@/lib/db/schema'
 import { DashboardHome } from '@/components/shared/DashboardHome'
+import { getISOWeekNumber, calculateConsistencyScore } from '@/lib/utils'
 
 export default async function DashboardPage() {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  const { userId } = await auth()
+  if (!userId) redirect('/login')
 
-  if (!user) redirect('/login')
+  const clerkUser = await currentUser()
 
-  const [
-    { data: profile },
-    { data: topics },
-    { data: publications },
-  ] = await Promise.all([
-    supabase.from('profiles').select('*').eq('id', user.id).single(),
-    supabase
-      .from('topics')
-      .select('*')
-      .eq('user_id', user.id)
-      .eq('week_number', getCurrentWeekNumber())
-      .in('status', ['planned', 'scripted', 'published']),
-    supabase
-      .from('publications')
-      .select('*')
-      .eq('user_id', user.id)
-      .gte('published_at', getMonthStart())
-      .order('published_at', { ascending: false }),
+  // Upsert profil (création automatique à la première connexion)
+  await db
+    .insert(profiles)
+    .values({
+      id: userId,
+      fullName: clerkUser?.fullName ?? clerkUser?.firstName ?? null,
+    })
+    .onConflictDoNothing()
+
+  const currentWeek = getISOWeekNumber(new Date())
+  const monthStart = new Date()
+  monthStart.setDate(1)
+  monthStart.setHours(0, 0, 0, 0)
+
+  const [profile, weekTopics, monthPublications] = await Promise.all([
+    db.select().from(profiles).where(eq(profiles.id, userId)).limit(1).then((r) => r[0]),
+    db
+      .select()
+      .from(topics)
+      .where(eq(topics.userId, userId))
+      .then((r) => r.filter((t) => t.weekNumber === currentWeek && ['planned', 'scripted', 'published'].includes(t.status))),
+    db
+      .select()
+      .from(publications)
+      .where(eq(publications.userId, userId))
+      .orderBy(desc(publications.publishedAt)),
   ])
 
-  const weeklyPublished = publications?.filter((p) => {
-    const pubWeek = getISOWeekNumber(new Date(p.published_at))
-    return pubWeek === getCurrentWeekNumber()
-  }).length ?? 0
+  const weeklyPublished = monthPublications.filter((p) => {
+    return getISOWeekNumber(new Date(p.publishedAt)) === currentWeek
+  }).length
 
-  const targetFrequency = profile?.target_frequency ?? 3
-  const publishedThisMonth = publications?.length ?? 0
-  const monthlyTarget = targetFrequency * 4
-  const consistencyScore = Math.min(100, Math.round((publishedThisMonth / Math.max(monthlyTarget, 1)) * 100))
+  const targetFrequency = profile?.targetFrequency ?? 3
 
-  // Streak calculé simplement (publications par semaine)
+  // Streak
   const pubsByWeek: Record<number, number> = {}
-  publications?.forEach((pub) => {
-    const week = getISOWeekNumber(new Date(pub.published_at))
+  monthPublications.forEach((p) => {
+    const week = getISOWeekNumber(new Date(p.publishedAt))
     pubsByWeek[week] = (pubsByWeek[week] ?? 0) + 1
   })
   let streak = 0
-  let w = getCurrentWeekNumber()
+  let w = currentWeek
   for (let i = 0; i < 52; i++) {
     if ((pubsByWeek[w] ?? 0) >= 1) { streak++; w-- } else break
   }
 
-  const nextTopic = topics?.find((t) => t.status === 'planned' || t.status === 'scripted')
+  // Score mensuel
+  const last4 = [currentWeek, currentWeek - 1, currentWeek - 2, currentWeek - 3]
+  const monthlyPubs = last4.reduce((sum, wk) => sum + (pubsByWeek[wk] ?? 0), 0)
+  const consistencyScore = calculateConsistencyScore(monthlyPubs, targetFrequency * 4)
+
+  const nextTopic = weekTopics.find((t) => t.status === 'planned' || t.status === 'scripted') ?? null
+  const userName = profile?.fullName ?? clerkUser?.firstName ?? 'Créateur'
 
   return (
     <DashboardHome
-      userName={profile?.full_name ?? user.email?.split('@')[0] ?? 'Créateur'}
+      userName={userName}
       weeklyPublished={weeklyPublished}
       weeklyTarget={targetFrequency}
       streak={streak}
       consistencyScore={consistencyScore}
-      nextTopic={nextTopic ?? null}
+      nextTopic={nextTopic}
       niches={profile?.niches ?? []}
     />
   )
-}
-
-function getCurrentWeekNumber(): number {
-  return getISOWeekNumber(new Date())
-}
-
-function getISOWeekNumber(date: Date): number {
-  const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()))
-  const dayNum = d.getUTCDay() || 7
-  d.setUTCDate(d.getUTCDate() + 4 - dayNum)
-  const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1))
-  return Math.ceil((((d.getTime() - yearStart.getTime()) / 86400000) + 1) / 7)
-}
-
-function getMonthStart(): string {
-  const now = new Date()
-  return new Date(now.getFullYear(), now.getMonth(), 1).toISOString()
 }
