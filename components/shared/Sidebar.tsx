@@ -1,9 +1,10 @@
 'use client'
 
 import Link from 'next/link'
+import Image from 'next/image'
 import { usePathname } from 'next/navigation'
 import { motion } from 'framer-motion'
-import { Zap, LayoutDashboard, Brain, CalendarDays, BarChart2, Radio, SlidersHorizontal } from 'lucide-react'
+import { LayoutDashboard, Brain, CalendarDays, BarChart2, Radio, SlidersHorizontal } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 const navItems = [
@@ -24,9 +25,7 @@ export function Sidebar() {
       <aside className="hidden md:flex w-56 flex-col border-r border-border/50 bg-card">
         {/* Logo */}
         <div className="flex h-14 items-center gap-2.5 border-b border-border/50 px-5">
-          <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary">
-            <Zap className="h-3.5 w-3.5 text-white" />
-          </div>
+          <Image src="/logo.svg" alt="KamContent" width={28} height={28} className="rounded-md" />
           <span className="text-sm font-semibold tracking-tight">KamContent</span>
         </div>
 
