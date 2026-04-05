@@ -1,4 +1,4 @@
-import { NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 import { generateText } from 'ai'
 import { auth } from '@clerk/nextjs/server'
 import { eq, and } from 'drizzle-orm'
@@ -12,7 +12,7 @@ import { getISOWeekNumber } from '@/lib/utils'
  * POST /api/generate-topics
  * Génère 15 sujets de contenu pour la semaine via l'IA configurée
  */
-export async function POST() {
+export async function POST(request: NextRequest) {
   try {
     const { userId } = await auth()
     if (!userId) {
@@ -66,8 +66,15 @@ export async function POST() {
       // SearXNG indisponible — on continue sans les tendances
     }
 
+    // Hints optionnels envoyés par l'utilisateur
+    let hints: string | undefined
+    try {
+      const body = await request.json().catch(() => ({}))
+      hints = body.hints ?? undefined
+    } catch { /* body vide */ }
+
     // Génération via le fournisseur IA configuré
-    const prompt = buildTopicsPrompt(profile.niches, profile.channels, profile.languages, trends)
+    const prompt = buildTopicsPrompt(profile.niches, profile.channels, profile.languages, trends, hints)
 
     const { text } = await generateText({
       model: getAIModel(),

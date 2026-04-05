@@ -63,6 +63,10 @@ export default function PlannerPage() {
     }
   }
 
+  function handleDelete(topicId: string) {
+    setTopics((prev) => prev.filter((t) => t.id !== topicId))
+  }
+
   async function handleMarkPublished(topicId: string) {
     const res = await fetch('/api/publish-content', {
       method: 'POST',
@@ -99,6 +103,7 @@ export default function PlannerPage() {
             scripts={scripts}
             onGenerateScript={handleGenerateScript}
             onMarkPublished={handleMarkPublished}
+            onDelete={handleDelete}
             generatingScript={generatingScript}
           />
         </motion.div>

@@ -1,6 +1,5 @@
 'use client'
 
-import { formatDateFr } from '@/lib/utils'
 import { ContentSlot } from './ContentSlot'
 import type { Topic, Script } from '@/lib/db/schema'
 
@@ -12,6 +11,7 @@ interface WeekCalendarProps {
   scripts: Record<string, Script>
   onGenerateScript: (topicId: string) => Promise<void>
   onMarkPublished: (topicId: string) => void
+  onDelete: (topicId: string) => void
   generatingScript: string | null
 }
 
@@ -21,6 +21,7 @@ export function WeekCalendar({
   scripts,
   onGenerateScript,
   onMarkPublished,
+  onDelete,
   generatingScript,
 }: WeekCalendarProps) {
   const today = new Date()
@@ -34,17 +35,18 @@ export function WeekCalendar({
         const isToday = dayDate.getTime() === today.getTime()
         const isPast = dayDate < today
 
-        // Topics pour ce jour (répartition équitable)
-        const dayTopics = topics.filter((_, i) => i % 7 === index)
+        // Topics assignés à ce jour via scheduledDay, ou fallback positional pour les anciens topics
+        const dayTopics = topics.filter((t) =>
+          t.scheduledDay != null ? t.scheduledDay === index : false
+        )
 
         return (
           <div
             key={day.toISOString()}
             className={`rounded-lg border p-3 min-h-[120px] ${
               isToday ? 'border-primary/50 bg-primary/5' : 'border-border bg-card'
-            } ${isPast ? 'opacity-70' : ''}`}
+            } ${isPast && !isToday ? 'opacity-60' : ''}`}
           >
-            {/* En-tête du jour */}
             <div className="flex items-center justify-between mb-3">
               <span className={`text-xs font-semibold uppercase tracking-wide ${
                 isToday ? 'text-primary' : 'text-muted-foreground'
@@ -58,7 +60,6 @@ export function WeekCalendar({
               </span>
             </div>
 
-            {/* Contenu du jour */}
             <div className="space-y-2">
               {dayTopics.map((topic) => (
                 <ContentSlot
@@ -67,6 +68,7 @@ export function WeekCalendar({
                   script={scripts[topic.id] ?? null}
                   onGenerateScript={onGenerateScript}
                   onMarkPublished={onMarkPublished}
+                  onDelete={onDelete}
                   generatingScript={generatingScript}
                 />
               ))}

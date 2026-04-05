@@ -6,15 +6,20 @@ export function buildTopicsPrompt(
   niches: string[],
   channels: string[],
   languages: string[],
-  trends: string[] = []
+  trends: string[] = [],
+  hints?: string
 ): string {
   const trendsContext = trends.length > 0
     ? `\n\nTendances actuelles à exploiter :\n${trends.map(t => `- ${t}`).join('\n')}`
     : ''
 
+  const hintsContext = hints
+    ? `\n\nIdées et contexte fournis par le créateur (priorité haute) :\n${hints}`
+    : ''
+
   return `Tu es un expert en création de contenu pour les marchés francophones africains et européens.
 L'utilisateur est un créateur solo dans les niches : ${niches.join(', ')}.
-Ses canaux : ${channels.join(', ')}. Ses langues : ${languages.join(', ')}.${trendsContext}
+Ses canaux : ${channels.join(', ')}. Ses langues : ${languages.join(', ')}.${trendsContext}${hintsContext}
 
 Génère exactement 15 sujets de contenu pour cette semaine.
 Pour chaque sujet, fournis un JSON avec :
