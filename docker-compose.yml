@@ -38,6 +38,7 @@ services:
       # WhatsApp — Evolution API
       EVOLUTION_API_URL: http://evolution:8080
       EVOLUTION_API_KEY: ${EVOLUTION_API_KEY:-}
+      EVOLUTION_INSTANCE_NAME: ${EVOLUTION_INSTANCE_NAME:-kamcontent}
       # Sécurité
       CRON_SECRET: ${CRON_SECRET:-changeme}
       NEXT_PUBLIC_APP_URL: ${NEXT_PUBLIC_APP_URL:-http://localhost:3000}

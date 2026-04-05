@@ -5,7 +5,6 @@ import { profiles, publications, topics, channelConnections } from '@/lib/db/sch
 import { sendTelegramMessage, buildReminderMessage } from '@/lib/telegram/notify'
 import { sendWhatsAppNotification, buildWhatsAppReminderMessage } from '@/lib/whatsapp/notify'
 import { getISOWeekNumber } from '@/lib/utils'
-import type { WhatsAppConfig } from '@/lib/db/schema'
 
 /**
  * POST /api/telegram-notify
@@ -98,14 +97,9 @@ export async function POST(request: NextRequest) {
 
       // Notification WhatsApp
       if (waConn) {
-        const waConfig = waConn.config as WhatsAppConfig
-        const phoneNumber = waConfig.phoneNumber
+        const phoneNumber = (waConn.config as { phoneNumber?: string }).phoneNumber
         if (phoneNumber) {
-          await sendWhatsAppNotification(
-            waConfig,
-            phoneNumber,
-            buildWhatsAppReminderMessage(name, nextTopic.title, daysSince)
-          )
+          await sendWhatsAppNotification(phoneNumber, buildWhatsAppReminderMessage(name, nextTopic.title, daysSince))
         }
       }
 

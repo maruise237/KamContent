@@ -7,7 +7,6 @@ import { profiles, topics, publications, channelConnections } from '@/lib/db/sch
 import { sendTelegramMessage, buildCongratsMessage } from '@/lib/telegram/notify'
 import { sendWhatsAppNotification, buildWhatsAppCongratsMessage } from '@/lib/whatsapp/notify'
 import { getISOWeekNumber, calculateConsistencyScore } from '@/lib/utils'
-import type { WhatsAppConfig } from '@/lib/db/schema'
 
 const bodySchema = z.object({
   topicId: z.string().uuid(),
@@ -106,14 +105,9 @@ export async function POST(request: NextRequest) {
       .limit(1)
 
     if (waConn && waConn.status === 'connected') {
-      const waConfig = waConn.config as WhatsAppConfig
-      const phoneNumber = waConfig.phoneNumber
+      const phoneNumber = (waConn.config as { phoneNumber?: string }).phoneNumber
       if (phoneNumber) {
-        await sendWhatsAppNotification(
-          waConfig,
-          phoneNumber,
-          buildWhatsAppCongratsMessage(name, streak, consistencyScore)
-        )
+        await sendWhatsAppNotification(phoneNumber, buildWhatsAppCongratsMessage(name, streak, consistencyScore))
       }
     }
 
