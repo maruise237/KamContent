@@ -50,7 +50,7 @@ export function getAIModel(): LanguageModelV1 {
       // Modèles : deepseek-chat (V3), deepseek-reasoner (R1)
       const deepseekClient = createOpenAI({
         baseURL: 'https://api.deepseek.com/v1',
-        apiKey: process.env.AI_API_KEY ?? process.env.DEEPSEEK_API_KEY ?? '',
+        apiKey: process.env.AI_API_KEY || process.env.DEEPSEEK_API_KEY || '',
       })
       return deepseekClient(model)
     }
@@ -67,7 +67,7 @@ export function getAIModel(): LanguageModelV1 {
     case 'openrouter': {
       const openRouterClient = createOpenAI({
         baseURL: 'https://openrouter.ai/api/v1',
-        apiKey: process.env.AI_API_KEY ?? '',
+        apiKey: process.env.AI_API_KEY || '',
         headers: {
           'HTTP-Referer': process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000',
           'X-Title': 'KamContent',
@@ -79,8 +79,8 @@ export function getAIModel(): LanguageModelV1 {
     case 'custom': {
       // Tout endpoint compatible OpenAI (Groq, Together, Perplexity, etc.)
       const customClient = createOpenAI({
-        baseURL: process.env.AI_BASE_URL ?? '',
-        apiKey: process.env.AI_API_KEY ?? '',
+        baseURL: process.env.AI_BASE_URL || '',
+        apiKey: process.env.AI_API_KEY || '',
       })
       return customClient(model)
     }
