@@ -27,6 +27,12 @@ export async function GET(request: NextRequest) {
         .from(topics)
         .where(and(eq(topics.userId, userId), eq(topics.weekNumber, weekNumber)))
         .$dynamic()
+    } else if (weekParam && /^\d+$/.test(weekParam)) {
+      query = db
+        .select()
+        .from(topics)
+        .where(and(eq(topics.userId, userId), eq(topics.weekNumber, Number(weekParam))))
+        .$dynamic()
     }
 
     const rows = await query.orderBy(topics.createdAt)

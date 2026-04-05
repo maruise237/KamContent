@@ -10,6 +10,7 @@ import { getISOWeekNumber, calculateConsistencyScore } from '@/lib/utils'
 
 const bodySchema = z.object({
   topicId: z.string().uuid(),
+  publishedAt: z.string().datetime().optional(), // ISO string si l'utilisateur choisit l'heure
   url: z.string().url().optional(),
   notes: z.string().optional(),
 })
@@ -26,7 +27,8 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json()
-    const { topicId, url, notes } = bodySchema.parse(body)
+    const { topicId, url, notes, publishedAt: publishedAtRaw } = bodySchema.parse(body)
+    const publishedAt = publishedAtRaw ? new Date(publishedAtRaw) : new Date()
 
     // Récupération du sujet
     const [topic] = await db
@@ -46,6 +48,7 @@ export async function POST(request: NextRequest) {
         topicId,
         userId,
         channel: topic.channel,
+        publishedAt,
         url: url ?? null,
         notes: notes ?? null,
       })
