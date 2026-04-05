@@ -28,21 +28,35 @@ export function formatDateFr(date: Date): string {
 }
 
 /**
- * Retourne les 7 jours de la semaine courante (lun → dim)
+ * Retourne les 7 jours d'une semaine (lun → dim) avec un offset en semaines
+ * offset=0 → semaine courante, offset=1 → semaine suivante, offset=-1 → semaine passée
  */
-export function getCurrentWeekDays(): Date[] {
+export function getWeekDays(offset = 0): Date[] {
   const now = new Date()
   const dayOfWeek = now.getDay()
   const diff = dayOfWeek === 0 ? -6 : 1 - dayOfWeek
   const monday = new Date(now)
-  monday.setDate(now.getDate() + diff)
+  monday.setDate(now.getDate() + diff + offset * 7)
   monday.setHours(0, 0, 0, 0)
-
   return Array.from({ length: 7 }, (_, i) => {
     const day = new Date(monday)
     day.setDate(monday.getDate() + i)
     return day
   })
+}
+
+/** @deprecated use getWeekDays() */
+export function getCurrentWeekDays(): Date[] {
+  return getWeekDays(0)
+}
+
+/**
+ * Numéro de semaine ISO pour la semaine courante + offset
+ */
+export function getWeekNumberWithOffset(offset: number): number {
+  const now = new Date()
+  now.setDate(now.getDate() + offset * 7)
+  return getISOWeekNumber(now)
 }
 
 /**
