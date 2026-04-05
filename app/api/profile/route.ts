@@ -45,6 +45,7 @@ const updateSchema = z.object({
 
 /**
  * PUT /api/profile — met à jour le profil
+ * Seuls les champs présents dans le body sont mis à jour (pas d'écrasement avec undefined).
  */
 export async function PUT(request: NextRequest) {
   try {
@@ -54,11 +55,27 @@ export async function PUT(request: NextRequest) {
     const body = await request.json()
     const data = updateSchema.parse(body)
 
+    // Construire l'objet de mise à jour uniquement avec les champs fournis
+    const updateSet: Partial<{
+      fullName: string | null
+      niches: string[]
+      channels: string[]
+      languages: string[]
+      targetFrequency: number
+      telegramChatId: string | null
+    }> = {}
+    if (data.fullName !== undefined) updateSet.fullName = data.fullName
+    if (data.niches !== undefined) updateSet.niches = data.niches
+    if (data.channels !== undefined) updateSet.channels = data.channels
+    if (data.languages !== undefined) updateSet.languages = data.languages
+    if (data.targetFrequency !== undefined) updateSet.targetFrequency = data.targetFrequency
+    if (data.telegramChatId !== undefined) updateSet.telegramChatId = data.telegramChatId
+
     const [updated] = await db
       .insert(profiles)
       .values({
         id: userId,
-        fullName: data.fullName,
+        fullName: data.fullName ?? null,
         niches: data.niches ?? [],
         channels: data.channels ?? [],
         languages: data.languages ?? [],
@@ -67,14 +84,7 @@ export async function PUT(request: NextRequest) {
       })
       .onConflictDoUpdate({
         target: profiles.id,
-        set: {
-          fullName: data.fullName,
-          niches: data.niches,
-          channels: data.channels,
-          languages: data.languages,
-          targetFrequency: data.targetFrequency,
-          telegramChatId: data.telegramChatId,
-        },
+        set: updateSet,
       })
       .returning()
 

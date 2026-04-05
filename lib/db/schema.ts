@@ -119,6 +119,7 @@ export const channelConnections = pgTable('channel_connections', {
   channel: text('channel').notNull(), // 'telegram' | 'whatsapp'
   status: text('status').notNull().default('disconnected'),
   config: jsonb('config').notNull().default({}),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
 })
 

@@ -26,7 +26,17 @@ export async function POST(request: NextRequest) {
 
     // Mode cron — on vérifie via le header secret
     const cronSecret = request.headers.get('x-cron-secret')
-    if (cronSecret !== process.env.CRON_SECRET && process.env.CRON_SECRET) {
+    const expectedSecret = process.env.CRON_SECRET
+
+    if (!expectedSecret) {
+      // En production, CRON_SECRET doit être défini
+      if (process.env.NODE_ENV === 'production') {
+        console.error('[telegram-notify] CRON_SECRET non configuré en production')
+        return NextResponse.json({ error: 'Configuration serveur invalide' }, { status: 500 })
+      }
+      // En dev, on accepte sans secret mais on avertit
+      console.warn('[telegram-notify] CRON_SECRET non défini — requête cron non protégée')
+    } else if (cronSecret !== expectedSecret) {
       return NextResponse.json({ error: 'Non autorisé' }, { status: 401 })
     }
 

@@ -75,7 +75,6 @@ export default async function DashboardPage() {
       streak={streak}
       consistencyScore={consistencyScore}
       nextTopic={nextTopic}
-      niches={profile?.niches ?? []}
     />
   )
 }

@@ -17,7 +17,6 @@ interface DashboardHomeProps {
   streak: number
   consistencyScore: number
   nextTopic: Topic | null
-  niches: string[]
 }
 
 const SHORTCUTS = [
@@ -26,14 +25,7 @@ const SHORTCUTS = [
   { href: '/dashboard/tracker', icon: BarChart3, label: 'Tracker', description: 'Suivre la constance' },
 ]
 
-export function DashboardHome({
-  userName,
-  weeklyPublished,
-  weeklyTarget,
-  streak,
-  consistencyScore,
-  nextTopic,
-}: DashboardHomeProps) {
+export function DashboardHome({ userName, weeklyPublished, weeklyTarget, streak, consistencyScore, nextTopic }: DashboardHomeProps) {
   const weekProgress = Math.min(100, Math.round((weeklyPublished / Math.max(weeklyTarget, 1)) * 100))
   const hour = new Date().getHours()
   const greeting = hour < 12 ? 'Bonjour' : hour < 18 ? 'Bon après-midi' : 'Bonsoir'
