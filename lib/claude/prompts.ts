@@ -76,6 +76,86 @@ Réponds UNIQUEMENT en JSON valide avec cette structure :
 }`
 }
 
+interface WeeklyRecapParams {
+  name: string
+  weekNumber: number
+  published: number
+  target: number
+  streak: number
+  missedTopics: string[]   // titres des sujets planifiés non publiés
+  nextPlanned: string[]    // titres des sujets planifiés pour la semaine prochaine
+  niches: string[]
+  mainChannel: string      // canal principal (tiktok | youtube | etc.)
+  bestDays: string[]       // jours où l'utilisateur publie le plus (ex: ['lundi', 'jeudi'])
+}
+
+/**
+ * Génère un bilan hebdomadaire ultra-personnalisé et direct.
+ * Ton ajusté au palier de performance :
+ *   100%+  → félicitation courte + prochain défi
+ *   60-99% → encouragement + action précise manquante
+ *   1-59%  → direct + critique constructive + conseils concrets
+ *   0%     → sans complaisance + 1 seule action immédiate
+ */
+export function buildWeeklyRecapPrompt(p: WeeklyRecapParams): string {
+  const ratio = p.target > 0 ? p.published / p.target : 0
+
+  const tier =
+    ratio >= 1   ? 'CHAMPION' :
+    ratio >= 0.6 ? 'PARTIEL'  :
+    ratio > 0    ? 'FAIBLE'   : 'ZERO'
+
+  const toneInstruction: Record<string, string> = {
+    CHAMPION: `Félicite ${p.name} chaleureusement mais brièvement. Donne 1 seul conseil pour aller encore plus loin la semaine prochaine.`,
+    PARTIEL:  `Sois encourageant mais direct avec ${p.name}. Mentionne ce qui manque, nomme précisément le sujet non publié. Donne 1-2 actions concrètes.`,
+    FAIBLE:   `Sois direct et critique (sans être agressif) avec ${p.name}. Identifie le problème de fond. Propose 2 actions simples et réalistes.`,
+    ZERO:     `Sois sans complaisance avec ${p.name}. Pas d'excuse, pas de morale. Une seule action immédiate à faire MAINTENANT. Reformule si besoin l'objectif à la baisse.`,
+  }
+
+  const missedList = p.missedTopics.length > 0
+    ? `Sujets planifiés non publiés cette semaine : ${p.missedTopics.map(t => `"${t}"`).join(', ')}`
+    : 'Aucun sujet planifié manquant.'
+
+  const nextList = p.nextPlanned.length > 0
+    ? `Sujets déjà planifiés pour la semaine prochaine : ${p.nextPlanned.map(t => `"${t}"`).join(', ')}`
+    : 'Aucun sujet encore planifié pour la semaine prochaine.'
+
+  const bestDaysStr = p.bestDays.length > 0
+    ? `Ses meilleurs jours de publication historiquement : ${p.bestDays.join(', ')}.`
+    : ''
+
+  return `Tu rédiges un bilan hebdomadaire WhatsApp/Telegram pour un créateur de contenu.
+
+PROFIL :
+- Nom : ${p.name}
+- Semaine ${p.weekNumber}
+- Niches : ${p.niches.join(', ')}
+- Canal principal : ${p.mainChannel}
+
+PERFORMANCE CETTE SEMAINE :
+- Publiés : ${p.published}/${p.target}
+- Streak : ${p.streak} semaine${p.streak !== 1 ? 's' : ''} consécutive${p.streak !== 1 ? 's' : ''}
+- ${missedList}
+- ${nextList}
+- ${bestDaysStr}
+
+NIVEAU DE PERFORMANCE : ${tier}
+
+INSTRUCTION DE TON : ${toneInstruction[tier]}
+
+RÈGLES DE FORMAT (impératives) :
+- Maximum 7 lignes au total
+- Commence par "Nom — Bilan S.XX" sur la première ligne
+- Utilise des émojis sobres : ✅ ❌ ⚠️ 🔥 → (pas plus de 4 différents)
+- Chiffres : toujours mentionner X/Y et le streak
+- Les conseils commencent par "→"
+- Pas de "Bonjour", pas de "Cordialement", pas de phrases longues
+- Chaque ligne = 1 idée max
+- Termine par une seule phrase d'action claire si palier < CHAMPION
+
+Réponds UNIQUEMENT avec le message, rien d'autre.`
+}
+
 export function buildMotivationalQuotePrompt(niches: string[]): string {
   return `Tu es un coach motivationnel pour créateurs de contenu.
 Génère UNE citation motivationnelle courte (max 2 phrases) pour un créateur dans les niches : ${niches.join(', ')}.

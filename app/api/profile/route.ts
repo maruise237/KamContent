@@ -41,6 +41,9 @@ const updateSchema = z.object({
   languages: z.array(z.string()).optional(),
   targetFrequency: z.number().min(1).max(7).optional(),
   telegramChatId: z.string().nullable().optional(),
+  notifWeeklyRecap: z.boolean().optional(),
+  notifDailyReminder: z.boolean().optional(),
+  reminderHour: z.number().min(0).max(23).optional(),
 })
 
 /**
@@ -63,6 +66,9 @@ export async function PUT(request: NextRequest) {
       languages: string[]
       targetFrequency: number
       telegramChatId: string | null
+      notifWeeklyRecap: boolean
+      notifDailyReminder: boolean
+      reminderHour: number
     }> = {}
     if (data.fullName !== undefined) updateSet.fullName = data.fullName
     if (data.niches !== undefined) updateSet.niches = data.niches
@@ -70,6 +76,9 @@ export async function PUT(request: NextRequest) {
     if (data.languages !== undefined) updateSet.languages = data.languages
     if (data.targetFrequency !== undefined) updateSet.targetFrequency = data.targetFrequency
     if (data.telegramChatId !== undefined) updateSet.telegramChatId = data.telegramChatId
+    if (data.notifWeeklyRecap !== undefined) updateSet.notifWeeklyRecap = data.notifWeeklyRecap
+    if (data.notifDailyReminder !== undefined) updateSet.notifDailyReminder = data.notifDailyReminder
+    if (data.reminderHour !== undefined) updateSet.reminderHour = data.reminderHour
 
     const [updated] = await db
       .insert(profiles)
