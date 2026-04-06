@@ -28,15 +28,15 @@ const SHORTCUTS = [
 export function DashboardHome({ userName, weeklyPublished, weeklyTarget, streak, consistencyScore, nextTopic }: DashboardHomeProps) {
   const weekProgress = Math.min(100, Math.round((weeklyPublished / Math.max(weeklyTarget, 1)) * 100))
   const hour = new Date().getHours()
-  const greeting = hour < 12 ? 'Bonjour' : hour < 18 ? 'Bon après-midi' : 'Bonsoir'
-  const timeEmoji = hour < 12 ? '☀️' : hour < 18 ? '🌤️' : '🌙'
+  const greeting = hour < 1 ? 'Bonsoir' : hour < 6 ? 'Salut' : hour < 12 ? 'Bonjour' : hour < 18 ? 'Bon après-midi' : 'Bonsoir'
+  const timeEmoji = hour < 1 ? '🌙' : hour < 6 ? '⭐' : hour < 12 ? '☀️' : hour < 18 ? '🌤️' : '🌙'
 
   return (
     <div className="space-y-6">
       {/* Salutation */}
       <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }}>
         <h1 className="font-display text-3xl font-bold">
-          {timeEmoji} {greeting}, {userName}
+          {greeting}, {userName} {timeEmoji}
         </h1>
         <p className="text-muted-foreground mt-1">
           Voici ton tableau de bord de création de contenu
