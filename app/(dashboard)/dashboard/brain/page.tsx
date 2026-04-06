@@ -87,37 +87,28 @@ export default function BrainPage() {
   async function handleConfirm() {
     if (selectedIds.length === 0) return
     setConfirming(true)
+    setError(null)
 
     try {
       const weekNumber = getISOWeekNumber(new Date())
-      const allIds = topics.map((t) => t.id)
       const startDay = todayDayIndex()
-
-      // Déselectionner tout
-      await fetch('/api/topics', {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ids: allIds, selected: false, status: 'idea' }),
-      })
-
-      // Planifier les sélectionnés en les répartissant à partir d'aujourd'hui
       const scheduledDays = selectedIds.map((_, i) => (startDay + i) % 7)
 
-      await fetch('/api/topics', {
-        method: 'PATCH',
+      // Opération atomique : déselection + planification en une seule transaction
+      const res = await fetch('/api/topics/confirm', {
+        method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          ids: selectedIds,
-          selected: true,
-          status: 'planned',
-          weekNumber,
-          scheduledDays,
-        }),
+        body: JSON.stringify({ selectedIds, weekNumber, scheduledDays }),
       })
 
+      if (!res.ok) {
+        const { error: msg } = await res.json()
+        throw new Error(msg ?? 'Erreur lors de la confirmation')
+      }
+
       router.push('/dashboard/planner')
-    } catch {
-      setError('Erreur lors de la confirmation')
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Erreur lors de la confirmation')
     } finally {
       setConfirming(false)
     }
