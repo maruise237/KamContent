@@ -29,13 +29,14 @@ export function DashboardHome({ userName, weeklyPublished, weeklyTarget, streak,
   const weekProgress = Math.min(100, Math.round((weeklyPublished / Math.max(weeklyTarget, 1)) * 100))
   const hour = new Date().getHours()
   const greeting = hour < 12 ? 'Bonjour' : hour < 18 ? 'Bon après-midi' : 'Bonsoir'
+  const timeEmoji = hour < 12 ? '☀️' : hour < 18 ? '🌤️' : '🌙'
 
   return (
     <div className="space-y-6">
       {/* Salutation */}
       <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }}>
         <h1 className="font-display text-3xl font-bold">
-          {greeting}, {userName} 👋
+          {timeEmoji} {greeting}, {userName}
         </h1>
         <p className="text-muted-foreground mt-1">
           Voici ton tableau de bord de création de contenu
@@ -85,7 +86,7 @@ export function DashboardHome({ userName, weeklyPublished, weeklyTarget, streak,
             <CardContent>
               <div className="text-2xl font-display font-bold">{consistencyScore}%</div>
               <p className="text-xs text-muted-foreground mt-1">
-                {consistencyScore >= 70 ? '🌟 Excellent !' : consistencyScore >= 40 ? '💪 Continue !' : '🚀 On y va !'}
+                {consistencyScore >= 70 ? 'Excellent !' : consistencyScore >= 40 ? 'Continue !' : 'On y va !'}
               </p>
             </CardContent>
           </Card>

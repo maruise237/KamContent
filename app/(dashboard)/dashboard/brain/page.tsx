@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { motion } from 'framer-motion'
-import { AlertCircle, Check, Sparkles } from 'lucide-react'
+import { AlertCircle, Brain, Check, Sparkles } from 'lucide-react'
 import { GenerateButton } from '@/components/brain/GenerateButton'
 import { TopicGrid } from '@/components/brain/TopicGrid'
 import { Button } from '@/components/ui/button'
@@ -187,7 +187,7 @@ export default function BrainPage() {
         <TopicGrid topics={topics} selectedIds={selectedIds} onToggle={handleToggle} maxSelection={MAX_SELECTION} />
       ) : (
         <div className="flex flex-col items-center justify-center rounded-lg border border-dashed border-border h-52 gap-3">
-          <div className="text-4xl">🧠</div>
+          <Brain className="h-10 w-10 text-muted-foreground/30" />
           <div className="text-center">
             <p className="font-medium">Aucun sujet pour cette semaine</p>
             <p className="text-sm text-muted-foreground mt-1">

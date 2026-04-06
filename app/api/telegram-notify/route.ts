@@ -21,7 +21,7 @@ export async function POST(request: NextRequest) {
     if (body.type === 'test' && body.chatId) {
       const ok = await sendTelegramMessage(
         body.chatId,
-        '✅ KamContent est connecté ! Tu recevras tes rappels ici. 🎬'
+        'KamContent est connecté. Tu recevras tes rappels ici.'
       )
       return NextResponse.json({ ok })
     }
