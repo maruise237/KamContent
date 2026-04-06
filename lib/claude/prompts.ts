@@ -41,23 +41,34 @@ export function buildScriptPrompt(
   angle: string,
   channel: string,
   format: string,
-  language: string
+  language: string,
+  instructions?: string
 ): string {
+  const instructionsBlock = instructions
+    ? `\n\nInstructions spécifiques du créateur (priorité absolue) :\n${instructions}`
+    : ''
+
   return `Tu es un coach en création de contenu vidéo.
-Génère un script pour cette vidéo :
+Génère un script complet + description réseaux sociaux pour cette vidéo :
 - Titre : ${title}
 - Hook : ${hook}
 - Angle : ${angle}
 - Canal : ${channel} (${format})
-- Langue : ${language}
+- Langue : ${language}${instructionsBlock}
 
-Structure :
+Structure du script :
 1. INTRO (15-20 secondes) : accroche directe, promesse claire
 2. POINT 1 : titre + développement (2-3 phrases)
 3. POINT 2 : titre + développement (2-3 phrases)
 4. POINT 3 : titre + développement (2-3 phrases)
 5. OUTRO : résumé en 1 phrase
 6. CTA : appel à l'action adapté au canal
+
+Description réseaux sociaux :
+- 3-5 phrases percutantes pour la légende/description de la publication
+- Optimisée pour l'algorithme du canal (${channel})
+- Inclure un appel à l'action
+- 8 à 15 hashtags pertinents et mixés (populaires + niche)
 
 Ton : naturel, direct, jamais corporatif. Parle comme un humain.
 Durée estimée en secondes.
@@ -72,7 +83,9 @@ Réponds UNIQUEMENT en JSON valide avec cette structure :
   ],
   "outro": "...",
   "cta": "...",
-  "duration_estimate": 90
+  "duration_estimate": 90,
+  "description": "Légende/description optimisée pour ${channel}...",
+  "hashtags": ["#hashtag1", "#hashtag2", "#hashtag3"]
 }`
 }
 

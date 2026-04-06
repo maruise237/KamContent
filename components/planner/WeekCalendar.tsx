@@ -11,7 +11,7 @@ interface WeekCalendarProps {
   topics: Topic[]
   scripts: Record<string, Script>
   weekOffset: number
-  onGenerateScript: (topicId: string) => Promise<void>
+  onGenerateScript: (topicId: string, instructions?: string) => Promise<void>
   onMarkPublished: (topicId: string, publishedAt: Date, url?: string) => Promise<void>
   onDelete: (topicId: string) => void
   onMoveDate: (topicId: string, newDate: string) => Promise<void>

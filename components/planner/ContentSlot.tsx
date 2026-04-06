@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { Loader2, FileText, CheckSquare, Eye, Trash2, CalendarClock, Lock, SkipForward, Copy, Check } from 'lucide-react'
+import { Loader2, FileText, CheckSquare, Eye, Trash2, CalendarClock, Lock, SkipForward, Copy, Check, FileDown, RefreshCw } from 'lucide-react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -27,9 +27,9 @@ function todayString(): string {
 interface ContentSlotProps {
   topic: Topic
   script: Script | null
-  dayStr: string           // YYYY-MM-DD du jour affiché
-  todayStr: string         // YYYY-MM-DD d'aujourd'hui
-  onGenerateScript: (topicId: string) => Promise<void>
+  dayStr: string
+  todayStr: string
+  onGenerateScript: (topicId: string, instructions?: string) => Promise<void>
   onMarkPublished: (topicId: string, publishedAt: Date, url?: string) => Promise<void>
   onDelete: (topicId: string) => void
   onMoveDate: (topicId: string, newDate: string) => Promise<void>
@@ -138,8 +138,9 @@ export function ContentSlot({
           )}
         </div>
 
-        {/* Script viewer */}
-        <ScriptDialog open={showScript} onClose={() => setShowScript(false)} topic={topic} script={script} />
+        <ScriptDialog open={showScript} onClose={() => setShowScript(false)} topic={topic} script={script}
+          onRegenerate={(instr) => onGenerateScript(topic.id, instr)}
+          regenerating={isGenerating} />
       </>
     )
   }
@@ -310,21 +311,35 @@ export function ContentSlot({
       </Dialog>
 
       {/* ── Dialog : script ── */}
-      <ScriptDialog open={showScript} onClose={() => setShowScript(false)} topic={topic} script={script} />
+      <ScriptDialog open={showScript} onClose={() => setShowScript(false)} topic={topic} script={script}
+        onRegenerate={(instr) => onGenerateScript(topic.id, instr)}
+        regenerating={isGenerating} />
     </>
   )
 }
 
-function ScriptDialog({ open, onClose, topic, script }: {
-  open: boolean; onClose: () => void; topic: Topic; script: Script | null
+function ScriptDialog({ open, onClose, topic, script, onRegenerate, regenerating }: {
+  open: boolean
+  onClose: () => void
+  topic: Topic
+  script: Script | null
+  onRegenerate: (instructions: string) => Promise<void>
+  regenerating: boolean
 }) {
+  const [tab, setTab] = useState<'script' | 'description'>('script')
   const [copied, setCopied] = useState(false)
+  const [copiedHashtags, setCopiedHashtags] = useState(false)
+  const [showRegenerate, setShowRegenerate] = useState(false)
+  const [instructions, setInstructions] = useState('')
+  const [exportingPdf, setExportingPdf] = useState(false)
+
+  const points = script ? (script.points as unknown as ScriptPoint[]) : []
+  const hashtags = script?.hashtags ?? []
 
   function buildPlainText(): string {
     if (!script) return ''
-    const points = (script.points as unknown as ScriptPoint[])
     return [
-      `${topic.title}`,
+      topic.title,
       '',
       `INTRO\n${script.intro}`,
       '',
@@ -343,46 +358,228 @@ function ScriptDialog({ open, onClose, topic, script }: {
     setTimeout(() => setCopied(false), 2000)
   }
 
+  async function handleCopyHashtags() {
+    await navigator.clipboard.writeText(hashtags.join(' '))
+    setCopiedHashtags(true)
+    toast.success('Hashtags copiés')
+    setTimeout(() => setCopiedHashtags(false), 2000)
+  }
+
+  async function handleExportPdf() {
+    if (!script) return
+    setExportingPdf(true)
+    try {
+      const { jsPDF } = await import('jspdf')
+      const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' })
+
+      const pageW = doc.internal.pageSize.getWidth()
+      const margin = 18
+      const contentW = pageW - margin * 2
+      let y = 20
+
+      const addText = (text: string, size: number, bold = false, color: [number, number, number] = [30, 30, 30]) => {
+        doc.setFontSize(size)
+        doc.setFont('helvetica', bold ? 'bold' : 'normal')
+        doc.setTextColor(...color)
+        const lines = doc.splitTextToSize(text, contentW)
+        if (y + lines.length * (size * 0.4) > 280) { doc.addPage(); y = 20 }
+        doc.text(lines, margin, y)
+        y += lines.length * (size * 0.42) + 2
+      }
+
+      const addSection = (label: string, content: string) => {
+        y += 3
+        doc.setFillColor(245, 245, 250)
+        const lines = doc.splitTextToSize(content, contentW - 4)
+        const blockH = lines.length * 5 + 12
+        if (y + blockH > 280) { doc.addPage(); y = 20 }
+        doc.roundedRect(margin, y, contentW, blockH, 2, 2, 'F')
+        addText(label, 7.5, true, [100, 100, 130])
+        y -= 2
+        addText(content, 10, false, [30, 30, 30])
+        y += 1
+      }
+
+      // Titre
+      addText(topic.title, 16, true, [20, 20, 80])
+      y += 2
+      if (script.durationEstimate) {
+        addText(`Durée estimée : ~${Math.ceil(script.durationEstimate / 60)} min`, 9, false, [120, 120, 120])
+      }
+      y += 4
+
+      addSection('INTRO', script.intro)
+      points.forEach((p) => addSection(`POINT ${p.order} — ${p.title.toUpperCase()}`, p.content))
+      addSection('OUTRO', script.outro)
+      addSection('CTA', script.cta)
+
+      if (script.description) {
+        y += 6
+        doc.setDrawColor(200, 200, 220)
+        doc.line(margin, y, pageW - margin, y)
+        y += 6
+        addText('DESCRIPTION RÉSEAUX SOCIAUX', 9, true, [80, 80, 130])
+        addText(script.description, 10)
+      }
+
+      if (hashtags.length > 0) {
+        y += 3
+        addText(hashtags.join(' '), 9, false, [80, 100, 180])
+      }
+
+      const safeName = topic.title.replace(/[^a-z0-9]/gi, '_').slice(0, 40)
+      doc.save(`script_${safeName}.pdf`)
+      toast.success('PDF téléchargé')
+    } catch {
+      toast.error('Erreur lors de la génération du PDF')
+    } finally {
+      setExportingPdf(false)
+    }
+  }
+
+  async function handleRegenerate() {
+    await onRegenerate(instructions)
+    setShowRegenerate(false)
+    setInstructions('')
+  }
+
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
-        <DialogHeader>
-          <div className="flex items-start justify-between gap-3 pr-6">
-            <DialogTitle className="font-display">{topic.title}</DialogTitle>
-            <Button size="sm" variant="outline" className="h-7 px-2 text-xs shrink-0" onClick={handleCopy}>
-              {copied ? <Check className="h-3 w-3 mr-1" /> : <Copy className="h-3 w-3 mr-1" />}
-              {copied ? 'Copié' : 'Copier'}
-            </Button>
+      <DialogContent className="max-w-2xl max-h-[85vh] flex flex-col overflow-hidden">
+        <DialogHeader className="shrink-0">
+          <div className="flex items-start justify-between gap-2 pr-6">
+            <DialogTitle className="font-display leading-tight">{topic.title}</DialogTitle>
+            <div className="flex gap-1.5 shrink-0">
+              <Button size="sm" variant="outline" className="h-7 px-2 text-xs" onClick={handleCopy}>
+                {copied ? <Check className="h-3 w-3 mr-1" /> : <Copy className="h-3 w-3 mr-1" />}
+                {copied ? 'Copié' : 'Copier'}
+              </Button>
+              <Button size="sm" variant="outline" className="h-7 px-2 text-xs" onClick={handleExportPdf} disabled={exportingPdf || !script}>
+                {exportingPdf ? <Loader2 className="h-3 w-3 mr-1 animate-spin" /> : <FileDown className="h-3 w-3 mr-1" />}
+                PDF
+              </Button>
+            </div>
+          </div>
+
+          {/* Tabs */}
+          <div className="flex gap-1 mt-3 border-b border-border">
+            {(['script', 'description'] as const).map((t) => (
+              <button
+                key={t}
+                onClick={() => setTab(t)}
+                className={`px-3 py-1.5 text-xs font-medium border-b-2 -mb-px transition-colors ${
+                  tab === t
+                    ? 'border-primary text-primary'
+                    : 'border-transparent text-muted-foreground hover:text-foreground'
+                }`}
+              >
+                {t === 'script' ? 'Script' : 'Description & Hashtags'}
+              </button>
+            ))}
           </div>
         </DialogHeader>
-        {script && (
-          <div className="space-y-4 text-sm">
-            <div className="rounded-lg border border-indigo-500/30 bg-indigo-500/5 p-4">
-              <p className="text-xs font-semibold text-indigo-400 uppercase tracking-wide mb-1">Intro</p>
-              <p className="leading-relaxed">{script.intro}</p>
-            </div>
-            {(script.points as unknown as ScriptPoint[]).map((point) => (
-              <div key={point.order} className="rounded-lg border border-border bg-card/50 p-4">
-                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-1">Point {point.order}</p>
-                <p className="font-semibold mb-1">{point.title}</p>
-                <p className="text-muted-foreground leading-relaxed">{point.content}</p>
+
+        <div className="flex-1 overflow-y-auto py-3 space-y-4 text-sm">
+          {script && tab === 'script' && (
+            <>
+              <div className="rounded-lg border border-indigo-500/30 bg-indigo-500/5 p-4">
+                <p className="text-xs font-semibold text-indigo-400 uppercase tracking-wide mb-1">Intro</p>
+                <p className="leading-relaxed">{script.intro}</p>
               </div>
-            ))}
-            <div className="rounded-lg border border-border bg-card/50 p-4">
-              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-1">Outro</p>
-              <p className="leading-relaxed">{script.outro}</p>
+              {points.map((point) => (
+                <div key={point.order} className="rounded-lg border border-border bg-card/50 p-4">
+                  <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-1">Point {point.order}</p>
+                  <p className="font-semibold mb-1">{point.title}</p>
+                  <p className="text-muted-foreground leading-relaxed">{point.content}</p>
+                </div>
+              ))}
+              <div className="rounded-lg border border-border bg-card/50 p-4">
+                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-1">Outro</p>
+                <p className="leading-relaxed">{script.outro}</p>
+              </div>
+              <div className="rounded-lg border border-primary/30 bg-primary/5 p-4">
+                <p className="text-xs font-semibold text-primary uppercase tracking-wide mb-1">CTA</p>
+                <p className="leading-relaxed font-medium">{script.cta}</p>
+              </div>
+              {script.durationEstimate && (
+                <p className="text-xs text-muted-foreground text-right">
+                  Durée estimée : ~{Math.ceil(script.durationEstimate / 60)} min
+                </p>
+              )}
+            </>
+          )}
+
+          {tab === 'description' && (
+            <>
+              {script?.description ? (
+                <div className="rounded-lg border border-border bg-card/50 p-4 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Description</p>
+                    <Button size="sm" variant="ghost" className="h-6 px-2 text-xs" onClick={async () => {
+                      await navigator.clipboard.writeText(script.description!)
+                      toast.success('Description copiée')
+                    }}>
+                      <Copy className="h-3 w-3 mr-1" />Copier
+                    </Button>
+                  </div>
+                  <p className="leading-relaxed whitespace-pre-wrap">{script.description}</p>
+                </div>
+              ) : (
+                <div className="rounded-lg border border-dashed border-border p-6 text-center text-sm text-muted-foreground">
+                  Pas encore de description — régénère le script pour en obtenir une.
+                </div>
+              )}
+
+              {hashtags.length > 0 && (
+                <div className="rounded-lg border border-border bg-card/50 p-4 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Hashtags</p>
+                    <Button size="sm" variant="ghost" className="h-6 px-2 text-xs" onClick={handleCopyHashtags}>
+                      {copiedHashtags ? <Check className="h-3 w-3 mr-1" /> : <Copy className="h-3 w-3 mr-1" />}
+                      {copiedHashtags ? 'Copié' : 'Copier tout'}
+                    </Button>
+                  </div>
+                  <div className="flex flex-wrap gap-1.5">
+                    {hashtags.map((tag) => (
+                      <span key={tag} className="rounded-md bg-primary/10 text-primary text-xs px-2 py-0.5 font-mono">
+                        {tag}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </>
+          )}
+
+          {/* Zone régénération */}
+          {showRegenerate && (
+            <div className="rounded-lg border border-border bg-card p-4 space-y-3">
+              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Instructions de régénération</p>
+              <textarea
+                className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm resize-none focus:outline-none focus:ring-1 focus:ring-ring"
+                rows={3}
+                placeholder="Ex : rends le script plus humoristique, ajoute une anecdote personnelle, cible les entrepreneurs débutants…"
+                value={instructions}
+                onChange={(e) => setInstructions(e.target.value)}
+              />
+              <div className="flex gap-2 justify-end">
+                <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => setShowRegenerate(false)}>Annuler</Button>
+                <Button size="sm" className="h-7 text-xs" onClick={handleRegenerate} disabled={regenerating}>
+                  {regenerating && <Loader2 className="h-3 w-3 mr-1 animate-spin" />}
+                  Régénérer
+                </Button>
+              </div>
             </div>
-            <div className="rounded-lg border border-primary/30 bg-primary/5 p-4">
-              <p className="text-xs font-semibold text-primary uppercase tracking-wide mb-1">CTA</p>
-              <p className="leading-relaxed font-medium">{script.cta}</p>
-            </div>
-            {script.durationEstimate && (
-              <p className="text-xs text-muted-foreground text-right">
-                Durée estimée : ~{Math.ceil(script.durationEstimate / 60)} min
-              </p>
-            )}
-          </div>
-        )}
+          )}
+        </div>
+
+        <div className="shrink-0 pt-3 border-t border-border flex justify-between items-center">
+          <Button size="sm" variant="ghost" className="h-7 text-xs gap-1.5" onClick={() => { setShowRegenerate(!showRegenerate); setInstructions('') }}>
+            <RefreshCw className="h-3 w-3" />
+            {showRegenerate ? 'Annuler' : 'Régénérer'}
+          </Button>
+          <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={onClose}>Fermer</Button>
+        </div>
       </DialogContent>
     </Dialog>
   )
