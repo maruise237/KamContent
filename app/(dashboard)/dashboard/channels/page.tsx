@@ -283,7 +283,7 @@ export default function ChannelsPage() {
               <div>
                 <CardTitle className="text-sm font-medium">Notifications</CardTitle>
                 <CardDescription className="text-xs">
-                  {hasChannel ? 'Configure ce que tu reçois et quand' : 'Connecte un canal d'abord'}
+                  {hasChannel ? 'Configure ce que tu reçois et quand' : "Connecte un canal d'abord"}
                 </CardDescription>
               </div>
             </div>
