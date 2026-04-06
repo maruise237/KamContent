@@ -129,7 +129,7 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    return NextResponse.json({ notified, hour: currentHour })
+    return NextResponse.json({ notified })
   } catch (error) {
     console.error('[telegram-notify]', error)
     return NextResponse.json(

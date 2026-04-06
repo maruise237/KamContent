@@ -68,14 +68,14 @@ export default function PlannerPage() {
 
   useEffect(() => { loadData(); loadHistory() }, [loadData, loadHistory])
 
-  async function handleGenerateScript(topicId: string) {
+  async function handleGenerateScript(topicId: string, instructions?: string) {
     setGeneratingScript(topicId)
     setError(null)
     try {
       const res = await fetch('/api/generate-script', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ topicId }),
+        body: JSON.stringify({ topicId, instructions }),
       })
       if (!res.ok) throw new Error((await res.json()).error ?? 'Erreur')
       const { script } = await res.json()

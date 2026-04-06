@@ -70,6 +70,9 @@ export const scripts = pgTable('scripts', {
   outro: text('outro').notNull(),
   cta: text('cta').notNull(),
   durationEstimate: integer('duration_estimate'),
+  // Description + hashtags pour les réseaux sociaux
+  description: text('description'),
+  hashtags: text('hashtags').array().notNull().default([]),
   createdAt: timestamp('created_at').defaultNow().notNull(),
 })
 

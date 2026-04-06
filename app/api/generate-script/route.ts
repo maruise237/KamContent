@@ -10,11 +10,13 @@ import { buildScriptPrompt } from '@/lib/claude/prompts'
 
 const bodySchema = z.object({
   topicId: z.string().uuid(),
+  instructions: z.string().optional(), // instructions de régénération
 })
 
 /**
  * POST /api/generate-script
- * Génère un script structuré pour un sujet donné
+ * Génère un script structuré + description + hashtags pour un sujet donné.
+ * Passe `instructions` pour régénérer avec des consignes spécifiques.
  */
 export async function POST(request: NextRequest) {
   try {
@@ -24,9 +26,8 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json()
-    const { topicId } = bodySchema.parse(body)
+    const { topicId, instructions } = bodySchema.parse(body)
 
-    // Récupération du sujet
     const [topic] = await db
       .select()
       .from(topics)
@@ -37,29 +38,30 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Sujet introuvable' }, { status: 404 })
     }
 
-    // Génération via le fournisseur IA configuré
     const prompt = buildScriptPrompt(
       topic.title,
       topic.hook,
       topic.angle,
       topic.channel,
       topic.format,
-      topic.language
+      topic.language,
+      instructions
     )
 
     const { text } = await generateText({
       model: getAIModel(),
       prompt,
-      maxTokens: 2048,
+      maxTokens: 2500,
     })
 
-    // Parse du JSON
     let scriptData: {
       intro: string
       points: Array<{ order: number; title: string; content: string }>
       outro: string
       cta: string
       duration_estimate: number
+      description?: string
+      hashtags?: string[]
     }
 
     try {
@@ -70,7 +72,7 @@ export async function POST(request: NextRequest) {
       throw new Error('Impossible de parser la réponse IA')
     }
 
-    // Suppression d'un script existant pour ce sujet
+    // Suppression du script existant
     await db.delete(scripts).where(eq(scripts.topicId, topicId))
 
     // Sauvegarde du nouveau script
@@ -84,10 +86,11 @@ export async function POST(request: NextRequest) {
         outro: scriptData.outro,
         cta: scriptData.cta,
         durationEstimate: scriptData.duration_estimate ?? null,
+        description: scriptData.description ?? null,
+        hashtags: scriptData.hashtags ?? [],
       })
       .returning()
 
-    // Mise à jour du statut du sujet
     await db
       .update(topics)
       .set({ status: 'scripted' })
