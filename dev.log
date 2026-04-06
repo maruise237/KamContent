@@ -1,0 +1,60 @@
+
+> kamcontent@0.1.0 dev
+> next dev
+
+  ▲ Next.js 14.2.29
+  - Local:        http://localhost:3000
+
+ ✓ Starting...
+ ✓ Ready in 1918ms
+ ○ Compiling /middleware ...
+ ✓ Compiled /middleware in 1450ms (234 modules)
+ ○ Compiling /dashboard ...
+ ✓ Compiled /dashboard in 12.5s (2054 modules)
+ ✓ Compiled in 1407ms (806 modules)
+
+[35m
+[Clerk]:[0m You are running in keyless mode.
+You can [35mclaim your keys[0m by visiting https://dashboard.clerk.com/apps/claim?token=38g8dmihohiner46q3y3chs5k2rd1frcpic0g5dp&return_url=http%3A%2F%2Flocalhost%3A3000%2F
+
+ GET /dashboard 307 in 14529ms
+ ○ Compiling /login ...
+<w> [webpack.cache.PackFileCacheStrategy] Serializing big strings (192kiB) impacts deserialization performance (consider using Buffer instead and decode when needed)
+ ✓ Compiled /login in 10.9s (2044 modules)
+ GET /login 200 in 11270ms
+ POST /login 200 in 25ms
+ POST /login 200 in 17ms
+ ○ Compiling /_not-found ...
+ ✓ Compiled /_not-found in 643ms (2047 modules)
+ GET /login/SignIn_clerk_catchall_check_1775480221092 404 in 770ms
+ GET /login 200 in 44ms
+ POST /login 200 in 14ms
+ POST /login 200 in 14ms
+ GET /login/SignIn_clerk_catchall_check_1775480244494 404 in 38ms
+ ⨯ ./app/(auth)/login/page.tsx
+Error:
+  [31mx[0m Unexpected token `div`. Expected jsx identifier
+   ,-[[36;1;4m/app/app/(auth)/login/page.tsx[0m:3:1]
+ [2m3[0m |
+ [2m4[0m | export default function LoginPage() {
+ [2m5[0m |   return (
+ [2m6[0m |     <div className="min-h-screen flex items-center justify-center bg-background p-4">
+   : [31;1m     ^^^[0m
+ [2m7[0m |       <div className="flex flex-col items-center gap-6">
+ [2m8[0m |         {/* Logo */}
+ [2m9[0m |         <div className="flex items-center gap-2">
+   `----
+
+Caused by:
+    Syntax Error
+
+Import trace for requested module:
+./app/(auth)/login/page.tsx
+ ✓ Compiled in 1635ms (1445 modules)
+ GET /login 200 in 346ms
+ POST /login 200 in 25ms
+ POST /login 200 in 19ms
+ ○ Compiling /_not-found ...
+ ✓ Compiled /_not-found in 577ms (1448 modules)
+ GET /login/SignIn_clerk_catchall_check_1775480340065 404 in 797ms
+[?25h
