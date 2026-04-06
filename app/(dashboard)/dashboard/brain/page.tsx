@@ -8,6 +8,7 @@ import { GenerateButton } from '@/components/brain/GenerateButton'
 import { TopicGrid } from '@/components/brain/TopicGrid'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
+import { Skeleton } from '@/components/ui/skeleton'
 import { getISOWeekNumber, getWeekDays, toDateString } from '@/lib/utils'
 import type { Topic } from '@/lib/db/schema'
 
@@ -28,14 +29,17 @@ export default function BrainPage() {
   const [confirming, setConfirming] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [profileReady, setProfileReady] = useState(true)
+  const [loadingProfile, setLoadingProfile] = useState(true)
 
   useEffect(() => {
     async function loadExistingTopics() {
+      setLoadingProfile(true)
       const res = await fetch('/api/profile')
       const { profile } = await res.json()
 
       if (!profile?.niches?.length) {
         setProfileReady(false)
+        setLoadingProfile(false)
         return
       }
 
@@ -46,6 +50,7 @@ export default function BrainPage() {
         setTopics(existing)
         setSelectedIds(existing.filter((t: Topic) => t.selected).map((t: Topic) => t.id))
       }
+      setLoadingProfile(false)
     }
     loadExistingTopics()
   }, [])
@@ -116,6 +121,19 @@ export default function BrainPage() {
     } finally {
       setConfirming(false)
     }
+  }
+
+  if (loadingProfile) {
+    return (
+      <div className="space-y-5">
+        <div><Skeleton className="h-8 w-32" /><Skeleton className="h-4 w-64 mt-2" /></div>
+        <Skeleton className="h-28 w-full rounded-lg" />
+        <div className="flex gap-3"><Skeleton className="h-9 w-32" /><Skeleton className="h-9 w-24" /></div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+          {Array.from({ length: 6 }).map((_, i) => <Skeleton key={i} className="h-32 rounded-lg" />)}
+        </div>
+      </div>
+    )
   }
 
   if (!profileReady) {

@@ -9,6 +9,7 @@ import { ConsistencyChart } from '@/components/tracker/ConsistencyChart'
 import { WeeklyProgress } from '@/components/tracker/WeeklyProgress'
 import { ChannelBadge } from '@/components/shared/ChannelBadge'
 import { getISOWeekNumber, calculateConsistencyScore } from '@/lib/utils'
+import { Skeleton } from '@/components/ui/skeleton'
 import type { Publication } from '@/lib/db/schema'
 
 interface WeekStats { week: string; published: number; target: number }
@@ -96,7 +97,16 @@ export default function TrackerPage() {
   }, [])
 
   if (loading) {
-    return <div className="flex items-center justify-center h-64"><p className="text-muted-foreground text-sm">Chargement...</p></div>
+    return (
+      <div className="space-y-6">
+        <div><Skeleton className="h-9 w-32" /><Skeleton className="h-4 w-72 mt-2" /></div>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          {[0, 1, 2].map((i) => <Skeleton key={i} className="h-36 rounded-xl" />)}
+        </div>
+        <Skeleton className="h-40 rounded-xl" />
+        <Skeleton className="h-64 rounded-xl" />
+      </div>
+    )
   }
 
   return (

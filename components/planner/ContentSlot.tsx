@@ -1,7 +1,8 @@
 'use client'
 
 import { useState } from 'react'
-import { Loader2, FileText, CheckSquare, Eye, Trash2, CalendarClock, Lock } from 'lucide-react'
+import { Loader2, FileText, CheckSquare, Eye, Trash2, CalendarClock, Lock, SkipForward, Copy, Check } from 'lucide-react'
+import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -42,6 +43,7 @@ export function ContentSlot({
   const [showScript, setShowScript]         = useState(false)
   const [showPublish, setShowPublish]       = useState(false)
   const [showReschedule, setShowReschedule] = useState(false)
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
   const [deleting, setDeleting]             = useState(false)
   const [publishing, setPublishing]         = useState(false)
   const [moving, setMoving]                 = useState(false)
@@ -61,11 +63,13 @@ export function ContentSlot({
     try {
       const res = await fetch(`/api/topics?id=${topic.id}`, { method: 'DELETE' })
       if (!res.ok) throw new Error('Suppression échouée')
+      toast.success('Sujet supprimé')
       onDelete(topic.id)
     } catch {
       setSlotError('Impossible de supprimer')
       setDeleting(false)
     }
+    setShowDeleteConfirm(false)
   }
 
   async function handleConfirmPublish() {
@@ -73,6 +77,7 @@ export function ContentSlot({
     setSlotError(null)
     try {
       await onMarkPublished(topic.id, new Date(publishTime), publishUrl || undefined)
+      toast.success('Contenu marqué comme publié')
       setShowPublish(false)
     } catch {
       setSlotError('Impossible de marquer comme publié')
@@ -87,11 +92,29 @@ export function ContentSlot({
     setSlotError(null)
     try {
       await onMoveDate(topic.id, newDate)
+      toast.success('Reprogrammé')
       setShowReschedule(false)
     } catch {
       setSlotError('Impossible de reprogrammer')
     } finally {
       setMoving(false)
+    }
+  }
+
+  /** Reporter à la semaine prochaine (lundi de S+1) */
+  async function handlePostponeNextWeek() {
+    const today = new Date()
+    const dayOfWeek = today.getDay() || 7 // 1=Lun…7=Dim
+    const daysUntilNextMonday = 8 - dayOfWeek
+    const nextMonday = new Date(today)
+    nextMonday.setDate(today.getDate() + daysUntilNextMonday)
+    const p = (n: number) => String(n).padStart(2, '0')
+    const nextMondayStr = `${nextMonday.getFullYear()}-${p(nextMonday.getMonth() + 1)}-${p(nextMonday.getDate())}`
+    try {
+      await onMoveDate(topic.id, nextMondayStr)
+      toast.success('Reporté à la semaine prochaine')
+    } catch {
+      toast.error('Impossible de reporter')
     }
   }
 
@@ -140,7 +163,7 @@ export function ContentSlot({
             <p className="text-xs font-medium leading-snug line-clamp-2">{topic.title}</p>
           </div>
           <button
-            onClick={handleDelete}
+            onClick={() => setShowDeleteConfirm(true)}
             disabled={deleting}
             className="text-muted-foreground/30 hover:text-destructive transition-colors shrink-0 mt-0.5"
             title="Supprimer"
@@ -159,6 +182,16 @@ export function ContentSlot({
         )}
 
         <div className="flex gap-1 flex-wrap">
+          {/* Reporter S+1 (raccourci pour les retards) */}
+          {isOverdue && (
+            <Button size="sm" variant="ghost"
+              className="h-6 px-2 text-xs text-orange-400 hover:text-orange-300"
+              onClick={handlePostponeNextWeek}
+            >
+              <SkipForward className="h-3 w-3 mr-1" />S+1
+            </Button>
+          )}
+
           {/* Reprogrammer */}
           <Button
             size="sm" variant="ghost"
@@ -166,7 +199,7 @@ export function ContentSlot({
             onClick={() => { setNewDate(todayString()); setShowReschedule(true) }}
           >
             <CalendarClock className="h-3 w-3 mr-1" />
-            {isOverdue ? 'Reprogrammer' : 'Déplacer'}
+            {isOverdue ? 'Date' : 'Déplacer'}
           </Button>
 
           {/* Script */}
@@ -258,6 +291,24 @@ export function ContentSlot({
         </DialogContent>
       </Dialog>
 
+      {/* ── Dialog : confirmation suppression ── */}
+      <Dialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="text-base">Supprimer ce sujet ?</DialogTitle>
+            <p className="text-sm text-muted-foreground mt-1 line-clamp-2">{topic.title}</p>
+          </DialogHeader>
+          <p className="text-sm text-muted-foreground py-1">Cette action est irréversible.</p>
+          <DialogFooter>
+            <Button variant="ghost" size="sm" onClick={() => setShowDeleteConfirm(false)}>Annuler</Button>
+            <Button variant="destructive" size="sm" onClick={handleDelete} disabled={deleting}>
+              {deleting && <Loader2 className="h-3 w-3 mr-1 animate-spin" />}
+              Supprimer
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       {/* ── Dialog : script ── */}
       <ScriptDialog open={showScript} onClose={() => setShowScript(false)} topic={topic} script={script} />
     </>
@@ -267,11 +318,42 @@ export function ContentSlot({
 function ScriptDialog({ open, onClose, topic, script }: {
   open: boolean; onClose: () => void; topic: Topic; script: Script | null
 }) {
+  const [copied, setCopied] = useState(false)
+
+  function buildPlainText(): string {
+    if (!script) return ''
+    const points = (script.points as unknown as ScriptPoint[])
+    return [
+      `${topic.title}`,
+      '',
+      `INTRO\n${script.intro}`,
+      '',
+      ...points.map((p) => `POINT ${p.order} — ${p.title}\n${p.content}`),
+      '',
+      `OUTRO\n${script.outro}`,
+      '',
+      `CTA\n${script.cta}`,
+    ].join('\n')
+  }
+
+  async function handleCopy() {
+    await navigator.clipboard.writeText(buildPlainText())
+    setCopied(true)
+    toast.success('Script copié')
+    setTimeout(() => setCopied(false), 2000)
+  }
+
   return (
     <Dialog open={open} onOpenChange={onClose}>
       <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle className="font-display">{topic.title}</DialogTitle>
+          <div className="flex items-start justify-between gap-3 pr-6">
+            <DialogTitle className="font-display">{topic.title}</DialogTitle>
+            <Button size="sm" variant="outline" className="h-7 px-2 text-xs shrink-0" onClick={handleCopy}>
+              {copied ? <Check className="h-3 w-3 mr-1" /> : <Copy className="h-3 w-3 mr-1" />}
+              {copied ? 'Copié' : 'Copier'}
+            </Button>
+          </div>
         </DialogHeader>
         {script && (
           <div className="space-y-4 text-sm">

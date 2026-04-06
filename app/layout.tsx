@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 import { ClerkProvider } from '@clerk/nextjs'
 import { ThemeProvider } from '@/components/shared/ThemeProvider'
+import { Toaster } from 'sonner'
 import './globals.css'
 
 export const metadata: Metadata = {
@@ -30,6 +31,7 @@ export default function RootLayout({
             disableTransitionOnChange
           >
             {children}
+            <Toaster position="bottom-right" richColors theme="dark" />
           </ThemeProvider>
         </body>
       </html>
