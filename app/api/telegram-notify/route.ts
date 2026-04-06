@@ -40,18 +40,12 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Non autorisé' }, { status: 401 })
     }
 
-    // Heure UTC actuelle — filtre les utilisateurs ayant choisi cette heure
-    const currentHour = new Date().getUTCHours()
-
+    // On charge tous les profils avec rappels activés,
+    // puis on filtre côté JS selon le fuseau horaire de chaque utilisateur
     const allProfiles = await db
       .select()
       .from(profiles)
-      .where(
-        and(
-          eq(profiles.notifDailyReminder, true),
-          eq(profiles.reminderHour, currentHour)
-        )
-      )
+      .where(eq(profiles.notifDailyReminder, true))
 
     let notified = 0
     const twoDaysAgo = new Date()
@@ -60,6 +54,11 @@ export async function POST(request: NextRequest) {
 
     for (const profile of allProfiles) {
       try {
+        // Vérifier l'heure locale de l'utilisateur selon son fuseau
+        const userTz = profile.timezone ?? 'UTC'
+        const userHour = new Date().toLocaleString('en-US', { timeZone: userTz, hour: 'numeric', hour12: false })
+        if (Number(userHour) !== profile.reminderHour) continue
+
         // Connexions actives
         const connections = await db
           .select()

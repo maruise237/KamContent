@@ -26,6 +26,8 @@ export const profiles = pgTable('profiles', {
   reminderHour: integer('reminder_hour').notNull().default(9), // heure locale 0-23
   // Stats persistées
   bestStreak: integer('best_streak').notNull().default(0),
+  // Fuseau horaire IANA (ex: 'Africa/Douala', 'Europe/Paris')
+  timezone: text('timezone').notNull().default('UTC'),
   createdAt: timestamp('created_at').defaultNow().notNull(),
 })
 

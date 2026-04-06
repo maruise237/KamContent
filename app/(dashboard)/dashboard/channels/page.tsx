@@ -3,13 +3,15 @@
 import { useEffect, useState } from 'react'
 import { motion } from 'framer-motion'
 import {
-  Loader2, CheckCircle, XCircle, Send, Smartphone, Trash2, Bell,
+  Loader2, CheckCircle, XCircle, Send, Smartphone, Trash2, Bell, AlertTriangle,
 } from 'lucide-react'
+import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Switch } from '@/components/ui/switch'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
 import { cn } from '@/lib/utils'
 
 type ConnectionStatus = 'connected' | 'disconnected' | 'pending'
@@ -45,6 +47,7 @@ export default function ChannelsPage() {
   const [waPhone, setWaPhone] = useState('')
   const [waSaving, setWaSaving] = useState(false)
   const [waRemoving, setWaRemoving] = useState(false)
+  const [confirmDisconnect, setConfirmDisconnect] = useState<'telegram' | 'whatsapp' | null>(null)
 
   // Préférences de notification
   const [notifWeeklyRecap, setNotifWeeklyRecap] = useState(true)
@@ -111,6 +114,8 @@ export default function ChannelsPage() {
     setTgStatus('disconnected')
     setTgChatId('')
     setTgResult(null)
+    setConfirmDisconnect(null)
+    toast.success('Telegram déconnecté')
   }
 
   // ── WhatsApp ─────────────────────────────────────────────────────────────────
@@ -132,17 +137,21 @@ export default function ChannelsPage() {
     setWaRemoving(false)
     setWaStatus('disconnected')
     setWaPhone('')
+    setConfirmDisconnect(null)
+    toast.success('WhatsApp déconnecté')
   }
 
   // ── Préférences de notification ──────────────────────────────────────────────
   async function saveNotifPrefs() {
     setNotifSaving(true)
-    await fetch('/api/profile', {
+    const res = await fetch('/api/profile', {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ notifWeeklyRecap, notifDailyReminder, reminderHour }),
     })
     setNotifSaving(false)
+    if (res.ok) toast.success('Préférences enregistrées')
+    else toast.error('Erreur lors de la sauvegarde')
   }
 
   const hasChannel = tgStatus === 'connected' || waStatus === 'connected'
@@ -206,7 +215,7 @@ export default function ChannelsPage() {
                   Connecter
                 </Button>
               ) : (
-                <Button size="sm" variant="ghost" className="h-8 text-xs px-3 text-destructive hover:text-destructive" onClick={disconnectTelegram}>
+                <Button size="sm" variant="ghost" className="h-8 text-xs px-3 text-destructive hover:text-destructive" onClick={() => setConfirmDisconnect('telegram')}>
                   <Trash2 className="mr-1.5 h-3 w-3" />Retirer
                 </Button>
               )}
@@ -262,9 +271,8 @@ export default function ChannelsPage() {
                   Enregistrer
                 </Button>
               ) : (
-                <Button size="sm" variant="ghost" className="h-8 text-xs px-3 text-destructive hover:text-destructive" onClick={removeWhatsApp} disabled={waRemoving}>
-                  {waRemoving ? <Loader2 className="mr-1.5 h-3 w-3 animate-spin" /> : <Trash2 className="mr-1.5 h-3 w-3" />}
-                  Retirer
+                <Button size="sm" variant="ghost" className="h-8 text-xs px-3 text-destructive hover:text-destructive" onClick={() => setConfirmDisconnect('whatsapp')} disabled={waRemoving}>
+                  <Trash2 className="mr-1.5 h-3 w-3" />Retirer
                 </Button>
               )}
             </div>
@@ -344,6 +352,27 @@ export default function ChannelsPage() {
           </CardContent>
         </Card>
       </motion.div>
+
+      {/* ── Dialog : confirmation déconnexion ── */}
+      <Dialog open={!!confirmDisconnect} onOpenChange={() => setConfirmDisconnect(null)}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <div className="flex items-center gap-2">
+              <AlertTriangle className="h-4 w-4 text-destructive" />
+              <DialogTitle className="text-base">Déconnecter {confirmDisconnect === 'telegram' ? 'Telegram' : 'WhatsApp'} ?</DialogTitle>
+            </div>
+          </DialogHeader>
+          <p className="text-sm text-muted-foreground py-1">
+            Tu ne recevras plus aucun rappel ni bilan jusqu'à la prochaine reconnexion.
+          </p>
+          <DialogFooter>
+            <Button variant="ghost" size="sm" onClick={() => setConfirmDisconnect(null)}>Annuler</Button>
+            <Button variant="destructive" size="sm" onClick={confirmDisconnect === 'telegram' ? disconnectTelegram : removeWhatsApp}>
+              Déconnecter
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
