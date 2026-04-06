@@ -1,5 +1,6 @@
 export const dynamic = 'force-dynamic'
 import { SignIn } from '@clerk/nextjs'
+import Image from 'next/image'
 
 export default function LoginPage() {
   return (
@@ -7,9 +8,7 @@ export default function LoginPage() {
       <div className="flex flex-col items-center gap-6">
         {/* Logo */}
         <div className="flex items-center gap-2">
-          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary">
-            <span className="text-white font-bold text-lg">K</span>
-          </div>
+          <Image src="/logo.png" alt="KamContent" width={51} height={28} className="rounded-md" />
           <span className="font-display text-2xl font-bold">KamContent</span>
         </div>
 

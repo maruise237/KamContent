@@ -25,7 +25,7 @@ export function Sidebar() {
       <aside className="hidden md:flex w-56 flex-col border-r border-border/50 bg-card">
         {/* Logo */}
         <div className="flex h-14 items-center gap-2.5 border-b border-border/50 px-5">
-          <Image src="/logo.svg" alt="KamContent" width={28} height={28} className="rounded-md" />
+          <Image src="/logo.png" alt="KamContent" width={51} height={28} className="rounded-md" />
           <span className="text-sm font-semibold tracking-tight">KamContent</span>
         </div>
 

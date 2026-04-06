@@ -9,9 +9,9 @@ export const metadata: Metadata = {
   description: 'Génère des sujets de vidéos, organise ton calendrier éditorial et suis ta constance de publication.',
   keywords: ['création de contenu', 'calendrier éditorial', 'TikTok', 'YouTube', 'constance'],
   icons: {
-    icon: '/logo.svg',
-    shortcut: '/logo.svg',
-    apple: '/logo.svg',
+    icon: '/favicon.png',
+    shortcut: '/favicon.png',
+    apple: '/favicon.png',
   },
 }
 
