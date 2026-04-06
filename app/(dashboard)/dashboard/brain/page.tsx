@@ -14,9 +14,25 @@ import type { Topic } from '@/lib/db/schema'
 
 const MAX_SELECTION = 3
 
+const FORMAT_OPTIONS = [
+  { value: '', label: 'Tous formats' },
+  { value: 'short', label: 'Court (<60s)' },
+  { value: 'long', label: 'Long (>3min)' },
+  { value: 'text', label: 'Texte' },
+]
+
+const CHANNEL_OPTIONS = [
+  { value: '', label: 'Tous canaux' },
+  { value: 'tiktok', label: 'TikTok' },
+  { value: 'youtube', label: 'YouTube' },
+  { value: 'instagram', label: 'Instagram' },
+  { value: 'linkedin', label: 'LinkedIn' },
+  { value: 'whatsapp', label: 'WhatsApp' },
+]
+
 /** Retourne l'index du jour actuel (0=Lun … 6=Dim) */
 function todayDayIndex(): number {
-  const d = new Date().getDay() // 0=Dim, 1=Lun…
+  const d = new Date().getDay()
   return d === 0 ? 6 : d - 1
 }
 
@@ -25,6 +41,8 @@ export default function BrainPage() {
   const [topics, setTopics] = useState<Topic[]>([])
   const [selectedIds, setSelectedIds] = useState<string[]>([])
   const [hints, setHints] = useState('')
+  const [filterFormat, setFilterFormat] = useState('')
+  const [filterChannel, setFilterChannel] = useState('')
   const [generating, setGenerating] = useState(false)
   const [confirming, setConfirming] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -55,7 +73,7 @@ export default function BrainPage() {
     loadExistingTopics()
   }, [])
 
-  async function handleGenerate() {
+  async function handleGenerate(mode: 'replace' | 'append' = 'replace') {
     setGenerating(true)
     setError(null)
 
@@ -63,7 +81,12 @@ export default function BrainPage() {
       const res = await fetch('/api/generate-topics', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ hints: hints.trim() || undefined }),
+        body: JSON.stringify({
+          hints: hints.trim() || undefined,
+          filterFormat: filterFormat || undefined,
+          filterChannel: filterChannel || undefined,
+          mode,
+        }),
       })
 
       if (!res.ok) {
@@ -72,8 +95,13 @@ export default function BrainPage() {
       }
 
       const { topics: newTopics } = await res.json()
-      setTopics(newTopics)
-      setSelectedIds([])
+      if (mode === 'append') {
+        // Ajoute les nouveaux sans toucher aux existants
+        setTopics((prev) => [...prev, ...newTopics])
+      } else {
+        setTopics(newTopics)
+        setSelectedIds([])
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Erreur inattendue')
     } finally {
@@ -178,12 +206,58 @@ export default function BrainPage() {
         <p className="text-xs text-muted-foreground">L'IA utilisera tes idées comme point de départ</p>
       </div>
 
-      {/* Bouton générer + compteur sélection */}
+      {/* Filtres format + canal */}
+      <div className="flex flex-wrap gap-2">
+        {FORMAT_OPTIONS.map((opt) => (
+          <button
+            key={opt.value}
+            onClick={() => setFilterFormat(opt.value)}
+            className={`rounded-full border px-3 py-1 text-xs font-medium transition-all ${
+              filterFormat === opt.value
+                ? 'border-primary bg-primary/10 text-primary'
+                : 'border-border text-muted-foreground hover:border-primary/40 hover:text-foreground'
+            }`}
+          >
+            {opt.label}
+          </button>
+        ))}
+        <div className="w-px bg-border mx-1" />
+        {CHANNEL_OPTIONS.map((opt) => (
+          <button
+            key={opt.value}
+            onClick={() => setFilterChannel(opt.value)}
+            className={`rounded-full border px-3 py-1 text-xs font-medium transition-all ${
+              filterChannel === opt.value
+                ? 'border-primary bg-primary/10 text-primary'
+                : 'border-border text-muted-foreground hover:border-primary/40 hover:text-foreground'
+            }`}
+          >
+            {opt.label}
+          </button>
+        ))}
+      </div>
+
+      {/* Boutons générer / ajouter + compteur sélection */}
       <div className="flex flex-col sm:flex-row sm:items-center gap-3">
-        <GenerateButton onClick={handleGenerate} loading={generating} />
+        <div className="flex gap-2">
+          <GenerateButton onClick={() => handleGenerate('replace')} loading={generating} />
+          {topics.length > 0 && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => handleGenerate('append')}
+              disabled={generating}
+              className="h-9 text-sm gap-1.5"
+            >
+              <Sparkles className="h-3.5 w-3.5" />
+              Ajouter +15
+            </Button>
+          )}
+        </div>
         {topics.length > 0 && (
           <p className="text-sm text-muted-foreground">
-            <span className="font-semibold text-foreground">{selectedIds.length}</span>/{MAX_SELECTION} sujets sélectionnés
+            <span className="font-semibold text-foreground">{selectedIds.length}</span>/{MAX_SELECTION} sélectionnés
+            {topics.length > 0 && <span className="ml-2 text-xs">({topics.filter(t => t.status === 'idea').length} idées)</span>}
           </p>
         )}
         {selectedIds.length > 0 && (

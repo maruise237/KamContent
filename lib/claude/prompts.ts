@@ -7,7 +7,9 @@ export function buildTopicsPrompt(
   channels: string[],
   languages: string[],
   trends: string[] = [],
-  hints?: string
+  hints?: string,
+  filterFormat?: string,   // 'short' | 'long' | 'text' | undefined = tous
+  filterChannel?: string   // 'tiktok' | 'youtube' | etc. | undefined = tous
 ): string {
   const trendsContext = trends.length > 0
     ? `\n\nTendances actuelles à exploiter :\n${trends.map(t => `- ${t}`).join('\n')}`
@@ -17,9 +19,17 @@ export function buildTopicsPrompt(
     ? `\n\nIdées et contexte fournis par le créateur (priorité haute) :\n${hints}`
     : ''
 
+  const formatConstraint = filterFormat
+    ? `\nCONTRAINTE FORMAT : tous les sujets doivent être de format "${filterFormat}" uniquement.`
+    : ''
+
+  const channelConstraint = filterChannel
+    ? `\nCONTRAINTE CANAL : tous les sujets doivent être pour "${filterChannel}" uniquement.`
+    : ''
+
   return `Tu es un expert en création de contenu pour les marchés francophones africains et européens.
 L'utilisateur est un créateur solo dans les niches : ${niches.join(', ')}.
-Ses canaux : ${channels.join(', ')}. Ses langues : ${languages.join(', ')}.${trendsContext}${hintsContext}
+Ses canaux : ${channels.join(', ')}. Ses langues : ${languages.join(', ')}.${trendsContext}${hintsContext}${formatConstraint}${channelConstraint}
 
 Génère exactement 15 sujets de contenu pour cette semaine.
 Pour chaque sujet, fournis un JSON avec :
@@ -27,7 +37,7 @@ Pour chaque sujet, fournis un JSON avec :
 - hook : première phrase qui accroche en 1 ligne
 - angle : l'angle narratif unique (ex: "contre-intuitif", "témoignage", "tuto rapide")
 - niche : la niche concernée
-- channel : le canal recommandé (tiktok | youtube | whatsapp)
+- channel : le canal recommandé (tiktok | youtube | whatsapp | instagram | linkedin)
 - language : la langue recommandée (fr | en)
 - format : short (<60s) | long (>3min) | text
 

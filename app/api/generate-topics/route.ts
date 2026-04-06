@@ -66,15 +66,21 @@ export async function POST(request: NextRequest) {
       // SearXNG indisponible — on continue sans les tendances
     }
 
-    // Hints optionnels envoyés par l'utilisateur
+    // Paramètres optionnels envoyés par l'utilisateur
     let hints: string | undefined
+    let filterFormat: string | undefined
+    let filterChannel: string | undefined
+    let mode: 'replace' | 'append' = 'replace'
     try {
       const body = await request.json().catch(() => ({}))
       hints = body.hints ?? undefined
+      filterFormat = body.filterFormat ?? undefined
+      filterChannel = body.filterChannel ?? undefined
+      mode = body.mode === 'append' ? 'append' : 'replace'
     } catch { /* body vide */ }
 
     // Génération via le fournisseur IA configuré
-    const prompt = buildTopicsPrompt(profile.niches, profile.channels, profile.languages, trends, hints)
+    const prompt = buildTopicsPrompt(profile.niches, profile.channels, profile.languages, trends, hints, filterFormat, filterChannel)
 
     const { text } = await generateText({
       model: getAIModel(),
@@ -103,16 +109,19 @@ export async function POST(request: NextRequest) {
 
     const weekNumber = getISOWeekNumber(new Date())
 
-    // Suppression des anciens sujets non planifiés de la semaine
-    await db
-      .delete(topics)
-      .where(
-        and(
-          eq(topics.userId, userId),
-          eq(topics.weekNumber, weekNumber),
-          eq(topics.status, 'idea')
+    // En mode replace : supprime les anciens sujets 'idea' de la semaine
+    // En mode append : conserve les idées existantes, ajoute les nouvelles
+    if (mode === 'replace') {
+      await db
+        .delete(topics)
+        .where(
+          and(
+            eq(topics.userId, userId),
+            eq(topics.weekNumber, weekNumber),
+            eq(topics.status, 'idea')
+          )
         )
-      )
+    }
 
     // Insertion des nouveaux sujets
     const toInsert = rawTopics.slice(0, 15).map((t) => ({

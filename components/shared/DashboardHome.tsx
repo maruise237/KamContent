@@ -93,6 +93,24 @@ export function DashboardHome({ userName, weeklyPublished, weeklyTarget, streak,
         </motion.div>
       </div>
 
+      {/* CTA si rien de planifié */}
+      {!nextTopic && weeklyPublished === 0 && (
+        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.25 }}>
+          <div className="rounded-xl border-2 border-dashed border-primary/20 bg-primary/3 p-6 text-center space-y-3">
+            <Brain className="h-8 w-8 text-primary/40 mx-auto" />
+            <div>
+              <p className="font-semibold">Aucun contenu planifié cette semaine</p>
+              <p className="text-sm text-muted-foreground mt-1">Commence par Brain pour générer tes sujets en quelques secondes</p>
+            </div>
+            <Button asChild size="sm" className="gap-1.5">
+              <Link href="/dashboard/brain">
+                <Brain className="h-4 w-4" />Générer mes sujets
+              </Link>
+            </Button>
+          </div>
+        </motion.div>
+      )}
+
       {/* Prochain contenu */}
       {nextTopic && (
         <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.25 }}>
