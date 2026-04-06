@@ -17,6 +17,31 @@ export function getISOWeekNumber(date: Date): number {
 }
 
 /**
+ * Convertit une Date en chaîne YYYY-MM-DD (fuseau local)
+ */
+export function toDateString(date: Date): string {
+  const y = date.getFullYear()
+  const m = String(date.getMonth() + 1).padStart(2, '0')
+  const d = String(date.getDate()).padStart(2, '0')
+  return `${y}-${m}-${d}`
+}
+
+/**
+ * Retourne le numéro de semaine ISO d'une date YYYY-MM-DD
+ */
+export function weekNumberFromDateString(dateStr: string): number {
+  return getISOWeekNumber(new Date(dateStr + 'T00:00:00'))
+}
+
+/**
+ * Retourne le jour de semaine (0=Lun…6=Dim) d'une date YYYY-MM-DD
+ */
+export function dayIndexFromDateString(dateStr: string): number {
+  const dow = new Date(dateStr + 'T00:00:00').getDay() // 0=Sun
+  return dow === 0 ? 6 : dow - 1
+}
+
+/**
  * Formate une date en français
  */
 export function formatDateFr(date: Date): string {

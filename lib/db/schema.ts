@@ -41,7 +41,8 @@ export const topics = pgTable('topics', {
   status: text('status').notNull().default('idea'), // idea | planned | scripted | published
   selected: boolean('selected').notNull().default(false),
   weekNumber: integer('week_number'),
-  scheduledDay: integer('scheduled_day'), // 0=Lun … 6=Dim
+  scheduledDay: integer('scheduled_day'),   // 0=Lun…6=Dim (héritage)
+  scheduledDate: text('scheduled_date'),    // YYYY-MM-DD — source de vérité
   createdAt: timestamp('created_at').defaultNow().notNull(),
 })
 

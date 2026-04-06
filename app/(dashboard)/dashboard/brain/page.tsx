@@ -8,7 +8,7 @@ import { GenerateButton } from '@/components/brain/GenerateButton'
 import { TopicGrid } from '@/components/brain/TopicGrid'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
-import { getISOWeekNumber } from '@/lib/utils'
+import { getISOWeekNumber, getWeekDays, toDateString } from '@/lib/utils'
 import type { Topic } from '@/lib/db/schema'
 
 const MAX_SELECTION = 3
@@ -90,15 +90,19 @@ export default function BrainPage() {
     setError(null)
 
     try {
-      const weekNumber = getISOWeekNumber(new Date())
+      // Calculer les dates réelles à partir d'aujourd'hui (semaine courante)
+      const weekDays = getWeekDays(0)
       const startDay = todayDayIndex()
-      const scheduledDays = selectedIds.map((_, i) => (startDay + i) % 7)
+      const scheduledDates = selectedIds.map((_, i) => {
+        const dayIdx = (startDay + i) % 7
+        return toDateString(weekDays[dayIdx])
+      })
 
       // Opération atomique : déselection + planification en une seule transaction
       const res = await fetch('/api/topics/confirm', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ selectedIds, weekNumber, scheduledDays }),
+        body: JSON.stringify({ selectedIds, scheduledDates }),
       })
 
       if (!res.ok) {

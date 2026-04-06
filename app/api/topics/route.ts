@@ -1,13 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@clerk/nextjs/server'
-import { eq, and, inArray } from 'drizzle-orm'
+import { eq, and, inArray, gte, lte } from 'drizzle-orm'
 import { z } from 'zod'
 import { db } from '@/lib/db'
 import { topics } from '@/lib/db/schema'
-import { getISOWeekNumber } from '@/lib/utils'
+import { getISOWeekNumber, toDateString, getWeekDays, getWeekNumberWithOffset } from '@/lib/utils'
 
 /**
- * GET /api/topics?week=current|all&status=planned,scripted
+ * GET /api/topics
+ *   ?week=current|<number>   filtre par numéro de semaine ISO
+ *   ?dateFrom=YYYY-MM-DD&dateTo=YYYY-MM-DD  filtre par plage de dates
+ *   ?status=planned,scripted,...
  */
 export async function GET(request: NextRequest) {
   try {
@@ -16,26 +19,45 @@ export async function GET(request: NextRequest) {
 
     const { searchParams } = new URL(request.url)
     const weekParam = searchParams.get('week')
+    const dateFrom = searchParams.get('dateFrom')
+    const dateTo = searchParams.get('dateTo')
     const statusParam = searchParams.get('status')
 
-    let query = db.select().from(topics).where(eq(topics.userId, userId)).$dynamic()
+    let rows
 
-    if (weekParam === 'current') {
+    if (dateFrom && dateTo) {
+      // Filtre par plage de dates sur scheduledDate
+      rows = await db
+        .select()
+        .from(topics)
+        .where(
+          and(
+            eq(topics.userId, userId),
+            gte(topics.scheduledDate, dateFrom),
+            lte(topics.scheduledDate, dateTo)
+          )
+        )
+        .orderBy(topics.scheduledDate)
+    } else if (weekParam === 'current') {
       const weekNumber = getISOWeekNumber(new Date())
-      query = db
+      rows = await db
         .select()
         .from(topics)
         .where(and(eq(topics.userId, userId), eq(topics.weekNumber, weekNumber)))
-        .$dynamic()
+        .orderBy(topics.createdAt)
     } else if (weekParam && /^\d+$/.test(weekParam)) {
-      query = db
+      rows = await db
         .select()
         .from(topics)
         .where(and(eq(topics.userId, userId), eq(topics.weekNumber, Number(weekParam))))
-        .$dynamic()
+        .orderBy(topics.createdAt)
+    } else {
+      rows = await db
+        .select()
+        .from(topics)
+        .where(eq(topics.userId, userId))
+        .orderBy(topics.createdAt)
     }
-
-    const rows = await query.orderBy(topics.createdAt)
 
     const statusFilter = statusParam?.split(',').filter(Boolean)
     const filtered = statusFilter?.length
@@ -54,12 +76,11 @@ const patchSchema = z.object({
   status: z.enum(['idea', 'planned', 'scripted', 'published']).optional(),
   weekNumber: z.number().optional(),
   scheduledDay: z.number().min(0).max(6).optional(),
-  scheduledDays: z.array(z.number().min(0).max(6)).optional(), // un jour par id dans le même ordre
+  scheduledDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
+  scheduledDays: z.array(z.number().min(0).max(6)).optional(),
 })
 
-/**
- * PATCH /api/topics — mise à jour en masse
- */
+/** PATCH /api/topics — mise à jour en masse */
 export async function PATCH(request: NextRequest) {
   try {
     const { userId } = await auth()
@@ -68,7 +89,6 @@ export async function PATCH(request: NextRequest) {
     const body = await request.json()
     const { ids, scheduledDays, ...updates } = patchSchema.parse(body)
 
-    // Si on passe scheduledDays (tableau), on met à jour chaque topic individuellement
     if (scheduledDays && scheduledDays.length === ids.length) {
       const updated = await Promise.all(
         ids.map((id, i) =>
@@ -97,9 +117,7 @@ export async function PATCH(request: NextRequest) {
   }
 }
 
-/**
- * DELETE /api/topics?id=uuid
- */
+/** DELETE /api/topics?id=uuid */
 export async function DELETE(request: NextRequest) {
   try {
     const { userId } = await auth()

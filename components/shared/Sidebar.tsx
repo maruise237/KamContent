@@ -68,8 +68,8 @@ export function Sidebar() {
         </div>
       </aside>
 
-      {/* Navigation mobile */}
-      <nav className="fixed bottom-0 left-0 right-0 z-50 flex border-t border-border/50 bg-card/95 backdrop-blur md:hidden">
+      {/* Navigation mobile — grande, utilisable */}
+      <nav className="fixed bottom-0 left-0 right-0 z-50 flex border-t border-border/50 bg-card/98 backdrop-blur-md md:hidden safe-area-pb">
         {navItems.map((item) => {
           const isActive = item.href === '/dashboard'
             ? pathname === '/dashboard'
@@ -80,12 +80,15 @@ export function Sidebar() {
               key={item.href}
               href={item.href}
               className={cn(
-                'flex flex-1 flex-col items-center gap-1 py-2.5 text-[10px] font-medium transition-colors',
-                isActive ? 'text-primary' : 'text-muted-foreground hover:text-foreground'
+                'relative flex flex-1 flex-col items-center justify-center gap-1.5 py-3 min-h-[60px] text-[11px] font-medium transition-colors',
+                isActive ? 'text-primary' : 'text-muted-foreground'
               )}
             >
-              <item.icon className="h-4 w-4" />
-              <span className="hidden xs:block">{item.label}</span>
+              {isActive && (
+                <span className="absolute top-0 left-0 right-0 h-0.5 bg-primary rounded-b-full mx-2" />
+              )}
+              <item.icon className={cn('h-5 w-5 transition-transform', isActive && 'scale-110')} />
+              <span>{item.label}</span>
             </Link>
           )
         })}

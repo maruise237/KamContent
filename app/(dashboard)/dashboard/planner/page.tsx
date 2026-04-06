@@ -6,7 +6,11 @@ import { motion } from 'framer-motion'
 import { AlertCircle, Calendar, ChevronLeft, ChevronRight, Clock } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { WeekCalendar } from '@/components/planner/WeekCalendar'
-import { getWeekDays, getWeekNumberWithOffset, getISOWeekNumber, CHANNEL_LABELS } from '@/lib/utils'
+import {
+  getWeekDays, getWeekNumberWithOffset, getISOWeekNumber,
+  toDateString, weekNumberFromDateString, dayIndexFromDateString,
+  CHANNEL_LABELS,
+} from '@/lib/utils'
 import type { Topic, Script } from '@/lib/db/schema'
 
 interface PubHistoryItem {
@@ -16,7 +20,6 @@ interface PubHistoryItem {
   channel: string
   publishedAt: string
   url: string | null
-  notes: string | null
 }
 
 export default function PlannerPage() {
@@ -30,12 +33,16 @@ export default function PlannerPage() {
 
   const weekDays = getWeekDays(weekOffset)
   const weekNumber = getWeekNumberWithOffset(weekOffset)
-  const currentWeekNumber = getISOWeekNumber(new Date())
-  const isCurrentWeek = weekOffset === 0
   const isPastWeek = weekOffset < 0
 
   const loadData = useCallback(async () => {
-    const res = await fetch(`/api/topics?week=${weekNumber}&status=planned,scripted,published`)
+    const dateFrom = toDateString(weekDays[0])
+    const dateTo = toDateString(weekDays[6])
+
+    // Filtre par plage de dates réelles (inclut les topics déplacés d'une autre semaine)
+    const res = await fetch(
+      `/api/topics?dateFrom=${dateFrom}&dateTo=${dateTo}&status=planned,scripted,published`
+    )
     const { topics: data } = await res.json()
 
     if (data?.length > 0) {
@@ -50,7 +57,8 @@ export default function PlannerPage() {
       setTopics([])
       setScripts({})
     }
-  }, [weekNumber])
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [weekOffset])
 
   const loadHistory = useCallback(async () => {
     const res = await fetch('/api/publications?limit=20')
@@ -58,10 +66,7 @@ export default function PlannerPage() {
     setHistory(publications ?? [])
   }, [])
 
-  useEffect(() => {
-    loadData()
-    loadHistory()
-  }, [loadData, loadHistory])
+  useEffect(() => { loadData(); loadHistory() }, [loadData, loadHistory])
 
   async function handleGenerateScript(topicId: string) {
     setGeneratingScript(topicId)
@@ -72,10 +77,7 @@ export default function PlannerPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ topicId }),
       })
-      if (!res.ok) {
-        const { error: msg } = await res.json()
-        throw new Error(msg ?? 'Erreur lors de la génération')
-      }
+      if (!res.ok) throw new Error((await res.json()).error ?? 'Erreur')
       const { script } = await res.json()
       setScripts((prev) => ({ ...prev, [topicId]: script }))
       setTopics((prev) => prev.map((t) => t.id === topicId ? { ...t, status: 'scripted' } : t))
@@ -102,12 +104,33 @@ export default function PlannerPage() {
     setTopics((prev) => prev.filter((t) => t.id !== topicId))
   }
 
-  async function handleMoveDay(topicId: string, newDay: number) {
-    setTopics((prev) => prev.map((t) => t.id === topicId ? { ...t, scheduledDay: newDay } : t))
+  /**
+   * Déplace un topic vers une nouvelle date (n'importe quelle date future)
+   * Met à jour weekNumber, scheduledDay et scheduledDate.
+   */
+  async function handleMoveDate(topicId: string, newDateStr: string) {
+    const newWeekNumber = weekNumberFromDateString(newDateStr)
+    const newScheduledDay = dayIndexFromDateString(newDateStr)
+
+    // Mise à jour optimiste : retire de la vue si le topic part dans une autre semaine
+    setTopics((prev) =>
+      prev
+        .map((t) => t.id === topicId
+          ? { ...t, scheduledDate: newDateStr, weekNumber: newWeekNumber, scheduledDay: newScheduledDay }
+          : t)
+        // Si la nouvelle date est hors de la semaine affichée, on retire le topic de l'affichage
+        .filter((t) => t.id !== topicId || (t.scheduledDate && t.scheduledDate >= toDateString(weekDays[0]) && t.scheduledDate <= toDateString(weekDays[6])))
+    )
+
     await fetch('/api/topics', {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ ids: [topicId], scheduledDay: newDay }),
+      body: JSON.stringify({
+        ids: [topicId],
+        scheduledDate: newDateStr,
+        weekNumber: newWeekNumber,
+        scheduledDay: newScheduledDay,
+      }),
     })
   }
 
@@ -116,17 +139,19 @@ export default function PlannerPage() {
 
   return (
     <div className="space-y-6">
-      {/* Header with week navigation */}
+      {/* Header + navigation */}
       <div className="flex items-start justify-between gap-4">
         <div>
           <h1 className="font-display text-3xl font-bold">Planner</h1>
           <p className="text-muted-foreground mt-1">
-            Semaine {weekNumber} · {weekDays[0].toLocaleDateString('fr-FR', { day: 'numeric', month: 'long' })} — {weekDays[6].toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })}
+            Semaine {weekNumber} · {weekDays[0].toLocaleDateString('fr-FR', { day: 'numeric', month: 'long' })}
+            {' — '}
+            {weekDays[6].toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })}
             {weekOffset === 1 && <span className="ml-2 text-xs bg-primary/15 text-primary px-2 py-0.5 rounded-full">Semaine prochaine</span>}
             {weekOffset === -1 && <span className="ml-2 text-xs bg-muted text-muted-foreground px-2 py-0.5 rounded-full">Semaine passée</span>}
           </p>
         </div>
-        <div className="flex items-center gap-1 mt-1">
+        <div className="flex items-center gap-1 mt-1 shrink-0">
           <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => setWeekOffset(w => w - 1)}>
             <ChevronLeft className="h-4 w-4" />
           </Button>
@@ -158,7 +183,7 @@ export default function PlannerPage() {
             onGenerateScript={handleGenerateScript}
             onMarkPublished={handleMarkPublished}
             onDelete={handleDelete}
-            onMoveDay={handleMoveDay}
+            onMoveDate={handleMoveDate}
             generatingScript={generatingScript}
           />
         </motion.div>
@@ -167,13 +192,11 @@ export default function PlannerPage() {
           <Calendar className="h-10 w-10 text-muted-foreground/40" />
           <div className="text-center">
             <p className="font-medium">
-              {isPastWeek ? 'Aucun contenu publié cette semaine-là' : 'Aucun contenu planifié'}
+              {isPastWeek ? 'Aucun contenu cette semaine-là' : 'Aucun contenu planifié'}
             </p>
             {!isPastWeek && (
               <>
-                <p className="text-sm text-muted-foreground mt-1 mb-4">
-                  Génère et sélectionne tes sujets dans Brain
-                </p>
+                <p className="text-sm text-muted-foreground mt-1 mb-4">Génère tes sujets dans Brain puis reviens ici</p>
                 <Button onClick={() => router.push('/dashboard/brain')}>Aller dans Brain</Button>
               </>
             )}
@@ -181,20 +204,20 @@ export default function PlannerPage() {
         </div>
       )}
 
-      {/* Historique des publications */}
+      {/* Historique */}
       {history.length > 0 && (
-        <div className="space-y-3">
+        <div className="space-y-3 pt-2 border-t border-border/50">
           <div className="flex items-center gap-2">
             <Clock className="h-4 w-4 text-muted-foreground" />
             <h2 className="text-sm font-semibold">Historique des publications</h2>
           </div>
-          <div className="space-y-2">
+          <div className="space-y-1.5">
             {history.map((pub) => (
               <div key={pub.id} className="flex items-center justify-between rounded-lg border border-border bg-card px-4 py-2.5 text-sm">
                 <div className="flex items-center gap-3 min-w-0">
                   <span className="text-muted-foreground text-xs shrink-0">
                     {new Date(pub.publishedAt).toLocaleDateString('fr-FR', { weekday: 'short', day: 'numeric', month: 'short' })}
-                    {' '}·{' '}
+                    {' · '}
                     <span className="font-medium text-foreground">
                       {new Date(pub.publishedAt).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
                     </span>
@@ -204,10 +227,7 @@ export default function PlannerPage() {
                 <div className="flex items-center gap-2 shrink-0">
                   <span className="text-xs text-muted-foreground">{CHANNEL_LABELS[pub.channel] ?? pub.channel}</span>
                   {pub.url && (
-                    <a href={pub.url} target="_blank" rel="noopener noreferrer"
-                      className="text-xs text-primary hover:underline">
-                      Voir
-                    </a>
+                    <a href={pub.url} target="_blank" rel="noopener noreferrer" className="text-xs text-primary hover:underline">Voir</a>
                   )}
                 </div>
               </div>
