@@ -445,7 +445,7 @@ function ScriptDialog({ open, onClose, topic, script, onRegenerate, regenerating
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="max-w-2xl max-h-[85vh] flex flex-col overflow-hidden">
+      <DialogContent className="flex flex-col overflow-hidden w-full max-w-2xl h-[100dvh] rounded-none sm:rounded-xl sm:h-auto sm:max-h-[85vh] m-0 sm:m-auto p-4 sm:p-6">
         <DialogHeader className="shrink-0">
           <div className="flex items-start justify-between gap-2 pr-6">
             <DialogTitle className="font-display leading-tight">{topic.title}</DialogTitle>
