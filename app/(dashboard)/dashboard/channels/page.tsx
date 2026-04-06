@@ -3,11 +3,12 @@
 import { useEffect, useState } from 'react'
 import { motion } from 'framer-motion'
 import {
-  Loader2, CheckCircle, XCircle, Send, Smartphone, Trash2,
+  Loader2, CheckCircle, XCircle, Send, Smartphone, Trash2, Bell,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { Switch } from '@/components/ui/switch'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { cn } from '@/lib/utils'
 
@@ -28,6 +29,11 @@ function StatusDot({ status }: { status: ConnectionStatus }) {
   )
 }
 
+const HOURS = Array.from({ length: 24 }, (_, i) => ({
+  value: i,
+  label: `${String(i).padStart(2, '0')}:00`,
+}))
+
 export default function ChannelsPage() {
   const [tgStatus, setTgStatus] = useState<ConnectionStatus>('disconnected')
   const [tgChatId, setTgChatId] = useState('')
@@ -40,7 +46,14 @@ export default function ChannelsPage() {
   const [waSaving, setWaSaving] = useState(false)
   const [waRemoving, setWaRemoving] = useState(false)
 
+  // Préférences de notification
+  const [notifWeeklyRecap, setNotifWeeklyRecap] = useState(true)
+  const [notifDailyReminder, setNotifDailyReminder] = useState(true)
+  const [reminderHour, setReminderHour] = useState(9)
+  const [notifSaving, setNotifSaving] = useState(false)
+
   useEffect(() => {
+    // Charger les connexions
     fetch('/api/channels').then((r) => r.json()).then(({ connections }) => {
       if (!connections) return
       for (const conn of connections) {
@@ -54,10 +67,16 @@ export default function ChannelsPage() {
         }
       }
     })
+    // Charger les prefs depuis le profil
+    fetch('/api/profile').then((r) => r.json()).then(({ profile }) => {
+      if (!profile) return
+      setNotifWeeklyRecap(profile.notifWeeklyRecap ?? true)
+      setNotifDailyReminder(profile.notifDailyReminder ?? true)
+      setReminderHour(profile.reminderHour ?? 9)
+    })
   }, [])
 
   // ── Telegram ────────────────────────────────────────────────────────────────
-
   async function saveTelegram() {
     if (!tgChatId.trim()) return
     setTgSaving(true)
@@ -88,18 +107,13 @@ export default function ChannelsPage() {
   }
 
   async function disconnectTelegram() {
-    await fetch('/api/channels', {
-      method: 'DELETE',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ channel: 'telegram' }),
-    })
+    await fetch('/api/channels', { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ channel: 'telegram' }) })
     setTgStatus('disconnected')
     setTgChatId('')
     setTgResult(null)
   }
 
-  // ── WhatsApp (bot partagé — l'utilisateur donne son numéro) ─────────────────
-
+  // ── WhatsApp ─────────────────────────────────────────────────────────────────
   async function saveWhatsApp() {
     if (!waPhone.trim()) return
     setWaSaving(true)
@@ -114,22 +128,31 @@ export default function ChannelsPage() {
 
   async function removeWhatsApp() {
     setWaRemoving(true)
-    await fetch('/api/channels', {
-      method: 'DELETE',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ channel: 'whatsapp' }),
-    })
+    await fetch('/api/channels', { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ channel: 'whatsapp' }) })
     setWaRemoving(false)
     setWaStatus('disconnected')
     setWaPhone('')
   }
+
+  // ── Préférences de notification ──────────────────────────────────────────────
+  async function saveNotifPrefs() {
+    setNotifSaving(true)
+    await fetch('/api/profile', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ notifWeeklyRecap, notifDailyReminder, reminderHour }),
+    })
+    setNotifSaving(false)
+  }
+
+  const hasChannel = tgStatus === 'connected' || waStatus === 'connected'
 
   return (
     <div className="max-w-lg space-y-4">
       <div className="mb-6">
         <h1 className="text-xl font-semibold tracking-tight">Canaux</h1>
         <p className="text-sm text-muted-foreground mt-0.5">
-          Reçois rappels et félicitations automatiques via le bot KamContent.
+          Connecte un canal pour recevoir rappels et bilans automatiques.
         </p>
       </div>
 
@@ -144,7 +167,7 @@ export default function ChannelsPage() {
                 </div>
                 <div>
                   <CardTitle className="text-sm font-medium">Telegram</CardTitle>
-                  <CardDescription className="text-xs">Bot partagé · un seul bot pour tous</CardDescription>
+                  <CardDescription className="text-xs">Rappels et bilans via le bot KamContent</CardDescription>
                 </div>
               </div>
               <StatusDot status={tgStatus} />
@@ -152,10 +175,11 @@ export default function ChannelsPage() {
           </CardHeader>
 
           <CardContent className="px-4 pb-4 space-y-3">
-            <p className="text-xs text-muted-foreground leading-relaxed">
-              Envoie <code className="bg-muted px-1 py-0.5 rounded text-[11px]">/start</code> au bot, puis récupère ton Chat ID via{' '}
-              <code className="bg-muted px-1 py-0.5 rounded text-[11px]">@userinfobot</code> sur Telegram.
-            </p>
+            <ol className="text-xs text-muted-foreground space-y-1 list-decimal list-inside">
+              <li>Ouvre Telegram → cherche <code className="bg-muted px-1 rounded">@KamContentBot</code></li>
+              <li>Envoie <code className="bg-muted px-1 rounded">/start</code></li>
+              <li>Va sur <code className="bg-muted px-1 rounded">@userinfobot</code> → copie ton Chat ID</li>
+            </ol>
 
             <div className="space-y-1">
               <Label className="text-xs text-muted-foreground">Chat ID</Label>
@@ -169,14 +193,10 @@ export default function ChannelsPage() {
             </div>
 
             {tgResult === 'success' && (
-              <p className="text-xs text-emerald-500 flex items-center gap-1">
-                <CheckCircle className="h-3 w-3" /> Message envoyé
-              </p>
+              <p className="text-xs text-emerald-500 flex items-center gap-1"><CheckCircle className="h-3 w-3" /> Message reçu ✓</p>
             )}
             {tgResult === 'error' && (
-              <p className="text-xs text-destructive flex items-center gap-1">
-                <XCircle className="h-3 w-3" /> Chat ID incorrect
-              </p>
+              <p className="text-xs text-destructive flex items-center gap-1"><XCircle className="h-3 w-3" /> Chat ID incorrect</p>
             )}
 
             <div className="flex gap-2 pt-1">
@@ -187,8 +207,7 @@ export default function ChannelsPage() {
                 </Button>
               ) : (
                 <Button size="sm" variant="ghost" className="h-8 text-xs px-3 text-destructive hover:text-destructive" onClick={disconnectTelegram}>
-                  <Trash2 className="mr-1.5 h-3 w-3" />
-                  Retirer
+                  <Trash2 className="mr-1.5 h-3 w-3" />Retirer
                 </Button>
               )}
               <Button size="sm" variant="outline" className="h-8 text-xs px-3" onClick={testTelegram} disabled={tgTesting || !tgChatId.trim()}>
@@ -211,7 +230,7 @@ export default function ChannelsPage() {
                 </div>
                 <div>
                   <CardTitle className="text-sm font-medium">WhatsApp</CardTitle>
-                  <CardDescription className="text-xs">Bot partagé · numéro global KamContent</CardDescription>
+                  <CardDescription className="text-xs">Bot partagé KamContent → ton numéro</CardDescription>
                 </div>
               </div>
               <StatusDot status={waStatus} />
@@ -220,8 +239,8 @@ export default function ChannelsPage() {
 
           <CardContent className="px-4 pb-4 space-y-3">
             <p className="text-xs text-muted-foreground leading-relaxed">
-              Le bot WhatsApp KamContent enverra les rappels à ce numéro.
-              Format international requis (ex : <code className="bg-muted px-1 py-0.5 rounded text-[11px]">+33612345678</code>).
+              Format international obligatoire — ex&nbsp;:
+              <code className="bg-muted px-1 py-0.5 rounded text-[11px] ml-1">+237612345678</code>
             </p>
 
             {waStatus === 'connected' ? (
@@ -232,12 +251,7 @@ export default function ChannelsPage() {
             ) : (
               <div className="space-y-1">
                 <Label className="text-xs text-muted-foreground">Numéro WhatsApp</Label>
-                <Input
-                  value={waPhone}
-                  onChange={(e) => setWaPhone(e.target.value)}
-                  placeholder="+237612345678"
-                  className="h-8 text-sm"
-                />
+                <Input value={waPhone} onChange={(e) => setWaPhone(e.target.value)} placeholder="+237612345678" className="h-8 text-sm" />
               </div>
             )}
 
@@ -254,6 +268,79 @@ export default function ChannelsPage() {
                 </Button>
               )}
             </div>
+          </CardContent>
+        </Card>
+      </motion.div>
+
+      {/* ── Préférences de notification ── */}
+      <motion.div initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 }}>
+        <Card className={cn('border shadow-none', hasChannel ? 'border-border/50' : 'border-border/30 opacity-60')}>
+          <CardHeader className="pb-3 pt-4 px-4">
+            <div className="flex items-center gap-3">
+              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary/10">
+                <Bell className="h-3.5 w-3.5 text-primary" />
+              </div>
+              <div>
+                <CardTitle className="text-sm font-medium">Notifications</CardTitle>
+                <CardDescription className="text-xs">
+                  {hasChannel ? 'Configure ce que tu reçois et quand' : 'Connecte un canal d'abord'}
+                </CardDescription>
+              </div>
+            </div>
+          </CardHeader>
+
+          <CardContent className="px-4 pb-4 space-y-4">
+            {/* Bilan hebdomadaire */}
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium">Bilan hebdomadaire</p>
+                <p className="text-xs text-muted-foreground">Chaque dimanche soir — performance + conseils personnalisés</p>
+              </div>
+              <Switch
+                checked={notifWeeklyRecap}
+                onCheckedChange={setNotifWeeklyRecap}
+                disabled={!hasChannel}
+              />
+            </div>
+
+            {/* Rappels quotidiens */}
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium">Rappels quotidiens</p>
+                <p className="text-xs text-muted-foreground">Si tu n'as pas posté depuis 48h</p>
+              </div>
+              <Switch
+                checked={notifDailyReminder}
+                onCheckedChange={setNotifDailyReminder}
+                disabled={!hasChannel}
+              />
+            </div>
+
+            {/* Heure des rappels */}
+            {notifDailyReminder && hasChannel && (
+              <div className="space-y-1.5">
+                <Label className="text-xs text-muted-foreground">Heure des rappels</Label>
+                <select
+                  value={reminderHour}
+                  onChange={(e) => setReminderHour(Number(e.target.value))}
+                  className="flex h-8 w-full rounded-md border border-input bg-background px-3 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring"
+                >
+                  {HOURS.map((h) => (
+                    <option key={h.value} value={h.value}>{h.label}</option>
+                  ))}
+                </select>
+              </div>
+            )}
+
+            <Button
+              size="sm"
+              className="h-8 text-xs mt-2"
+              onClick={saveNotifPrefs}
+              disabled={notifSaving || !hasChannel}
+            >
+              {notifSaving && <Loader2 className="mr-1.5 h-3 w-3 animate-spin" />}
+              Enregistrer les préférences
+            </Button>
           </CardContent>
         </Card>
       </motion.div>

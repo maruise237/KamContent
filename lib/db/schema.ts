@@ -20,6 +20,10 @@ export const profiles = pgTable('profiles', {
   channels: text('channels').array().notNull().default([]),
   languages: text('languages').array().notNull().default([]),
   targetFrequency: integer('target_frequency').notNull().default(3),
+  // Préférences de notification
+  notifWeeklyRecap: boolean('notif_weekly_recap').notNull().default(true),
+  notifDailyReminder: boolean('notif_daily_reminder').notNull().default(true),
+  reminderHour: integer('reminder_hour').notNull().default(9), // heure locale 0-23
   createdAt: timestamp('created_at').defaultNow().notNull(),
 })
 
