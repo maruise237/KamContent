@@ -1,6 +1,7 @@
 'use client'
 
 import { motion } from 'framer-motion'
+import { Flame, Minus } from 'lucide-react'
 
 interface StreakBadgeProps {
   streak: number
@@ -15,13 +16,15 @@ export function StreakBadge({ streak }: StreakBadgeProps) {
       className="flex flex-col items-center justify-center gap-1"
     >
       <div className="flex items-center gap-2">
-        <motion.span
+        <motion.div
           animate={{ scale: streak > 0 ? [1, 1.15, 1] : 1 }}
           transition={{ duration: 0.6, repeat: streak > 0 ? Infinity : 0, repeatDelay: 3 }}
-          className="text-4xl"
         >
-          {streak === 0 ? '💤' : streak < 3 ? '🔥' : streak < 6 ? '🔥🔥' : '🔥🔥🔥'}
-        </motion.span>
+          {streak === 0
+            ? <Minus className="h-8 w-8 text-muted-foreground/40" />
+            : <Flame className={`h-8 w-8 ${streak >= 6 ? 'text-red-500' : streak >= 3 ? 'text-orange-500' : 'text-amber-400'}`} />
+          }
+        </motion.div>
         <span className="font-display text-5xl font-bold text-foreground">
           {streak}
         </span>

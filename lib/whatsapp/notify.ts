@@ -21,7 +21,7 @@ export function buildWhatsAppReminderMessage(
   topicTitle: string,
   daysSince: number
 ): string {
-  return `Hey ${name} 👋 Tu n'as rien publié depuis ${daysSince} jours.\n\nProchain sujet : *${topicTitle}*\nLance-toi 🎬`
+  return `${name}, tu n'as rien publié depuis ${daysSince} jours.\n\nProchain sujet : *${topicTitle}*\nLance-toi.`
 }
 
 export function buildWhatsAppCongratsMessage(
@@ -29,5 +29,5 @@ export function buildWhatsAppCongratsMessage(
   streakWeeks: number,
   consistencyScore: number
 ): string {
-  return `🔥 *Publié !* Streak : *${streakWeeks} sem.*  Score : *${consistencyScore}%*\nContinue ${name} 💪`
+  return `*Publié.* Streak : *${streakWeeks} sem.* Score : *${consistencyScore}%*\nContinue ${name}.`
 }
