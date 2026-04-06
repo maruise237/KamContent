@@ -45,14 +45,38 @@ export default function TrackerPage() {
         pubsByWeek[week] = (pubsByWeek[week] ?? 0) + 1
       })
 
-      // Streak
+      // Streak actuel (depuis aujourd'hui en remontant)
       let s = 0
       let w = currentWeek
       for (let i = 0; i < 52; i++) {
         if ((pubsByWeek[w] ?? 0) >= 1) { s++; w-- } else break
       }
       setStreak(s)
-      setBestStreak(s) // Simplifié — best streak = streak actuel dans cette démo
+
+      // Meilleur streak (scan des 52 dernières semaines)
+      let maxRun = s
+      let run = 0
+      for (let i = 0; i < 52; i++) {
+        const wk = currentWeek - i
+        if ((pubsByWeek[wk] ?? 0) >= 1) {
+          run++
+          if (run > maxRun) maxRun = run
+        } else {
+          run = 0
+        }
+      }
+      // bestStreak = max(calculé, valeur persistée)
+      const storedBest = profile?.bestStreak ?? 0
+      const newBest = Math.max(maxRun, storedBest)
+      setBestStreak(newBest)
+      // Persister si meilleur que la valeur stockée
+      if (newBest > storedBest) {
+        fetch('/api/profile', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ bestStreak: newBest }),
+        }).catch(() => {/* silencieux */})
+      }
 
       setThisWeekPublished(pubsByWeek[currentWeek] ?? 0)
 

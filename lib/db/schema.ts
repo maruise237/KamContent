@@ -24,6 +24,8 @@ export const profiles = pgTable('profiles', {
   notifWeeklyRecap: boolean('notif_weekly_recap').notNull().default(true),
   notifDailyReminder: boolean('notif_daily_reminder').notNull().default(true),
   reminderHour: integer('reminder_hour').notNull().default(9), // heure locale 0-23
+  // Stats persistées
+  bestStreak: integer('best_streak').notNull().default(0),
   createdAt: timestamp('created_at').defaultNow().notNull(),
 })
 

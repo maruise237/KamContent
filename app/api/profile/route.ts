@@ -44,6 +44,7 @@ const updateSchema = z.object({
   notifWeeklyRecap: z.boolean().optional(),
   notifDailyReminder: z.boolean().optional(),
   reminderHour: z.number().min(0).max(23).optional(),
+  bestStreak: z.number().min(0).optional(),
 })
 
 /**
@@ -69,6 +70,7 @@ export async function PUT(request: NextRequest) {
       notifWeeklyRecap: boolean
       notifDailyReminder: boolean
       reminderHour: number
+      bestStreak: number
     }> = {}
     if (data.fullName !== undefined) updateSet.fullName = data.fullName
     if (data.niches !== undefined) updateSet.niches = data.niches
@@ -79,6 +81,7 @@ export async function PUT(request: NextRequest) {
     if (data.notifWeeklyRecap !== undefined) updateSet.notifWeeklyRecap = data.notifWeeklyRecap
     if (data.notifDailyReminder !== undefined) updateSet.notifDailyReminder = data.notifDailyReminder
     if (data.reminderHour !== undefined) updateSet.reminderHour = data.reminderHour
+    if (data.bestStreak !== undefined) updateSet.bestStreak = data.bestStreak
 
     const [updated] = await db
       .insert(profiles)

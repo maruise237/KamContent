@@ -45,6 +45,7 @@ export function ContentSlot({
   const [deleting, setDeleting]             = useState(false)
   const [publishing, setPublishing]         = useState(false)
   const [moving, setMoving]                 = useState(false)
+  const [slotError, setSlotError]           = useState<string | null>(null)
   const [publishTime, setPublishTime]       = useState(() => toDatetimeLocal(new Date()))
   const [publishUrl, setPublishUrl]         = useState('')
   const [newDate, setNewDate]               = useState(todayString)
@@ -56,23 +57,42 @@ export function ContentSlot({
 
   async function handleDelete() {
     setDeleting(true)
-    await fetch(`/api/topics?id=${topic.id}`, { method: 'DELETE' })
-    onDelete(topic.id)
+    setSlotError(null)
+    try {
+      const res = await fetch(`/api/topics?id=${topic.id}`, { method: 'DELETE' })
+      if (!res.ok) throw new Error('Suppression échouée')
+      onDelete(topic.id)
+    } catch {
+      setSlotError('Impossible de supprimer')
+      setDeleting(false)
+    }
   }
 
   async function handleConfirmPublish() {
     setPublishing(true)
-    await onMarkPublished(topic.id, new Date(publishTime), publishUrl || undefined)
-    setPublishing(false)
-    setShowPublish(false)
+    setSlotError(null)
+    try {
+      await onMarkPublished(topic.id, new Date(publishTime), publishUrl || undefined)
+      setShowPublish(false)
+    } catch {
+      setSlotError('Impossible de marquer comme publié')
+    } finally {
+      setPublishing(false)
+    }
   }
 
   async function handleConfirmReschedule() {
     if (!newDate || newDate < todayString()) return
     setMoving(true)
-    await onMoveDate(topic.id, newDate)
-    setMoving(false)
-    setShowReschedule(false)
+    setSlotError(null)
+    try {
+      await onMoveDate(topic.id, newDate)
+      setShowReschedule(false)
+    } catch {
+      setSlotError('Impossible de reprogrammer')
+    } finally {
+      setMoving(false)
+    }
   }
 
   // ─── Carte publiée → verrouillée ────────────────────────────────────────────
@@ -133,6 +153,10 @@ export function ContentSlot({
           <StatusBadge status={topic.status} />
           <ChannelBadge channel={topic.channel} />
         </div>
+
+        {slotError && (
+          <p className="text-[10px] text-destructive leading-tight">{slotError}</p>
+        )}
 
         <div className="flex gap-1 flex-wrap">
           {/* Reprogrammer */}

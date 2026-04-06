@@ -40,8 +40,11 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Non autorisé' }, { status: 401 })
     }
 
-    // Récupération de tous les profils
-    const allProfiles = await db.select().from(profiles)
+    // Récupération des profils avec rappels quotidiens activés
+    const allProfiles = await db
+      .select()
+      .from(profiles)
+      .where(eq(profiles.notifDailyReminder, true))
 
     let notified = 0
     const twoDaysAgo = new Date()

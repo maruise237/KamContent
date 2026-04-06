@@ -97,6 +97,8 @@ export default function PlannerPage() {
     if (res.ok) {
       setTopics((prev) => prev.map((t) => t.id === topicId ? { ...t, status: 'published' } : t))
       loadHistory()
+    } else {
+      throw new Error('Publication échouée')
     }
   }
 
