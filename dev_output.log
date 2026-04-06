@@ -6,31 +6,21 @@
   - Local:        http://localhost:3000
 
  ✓ Starting...
- ✓ Ready in 1805ms
+ ✓ Ready in 1783ms
  ○ Compiling /middleware ...
- ✓ Compiled /middleware in 1345ms (234 modules)
- ○ Compiling /dashboard ...
- ✓ Compiled /dashboard in 12s (2054 modules)
- ✓ Compiled in 1678ms (806 modules)
+ ✓ Compiled /middleware in 2.7s (234 modules)
+ ○ Compiling /login ...
+ ✓ Compiled /login in 9.9s (1010 modules)
+ ✓ Compiled in 1204ms (358 modules)
 
 [35m
 [Clerk]:[0m You are running in keyless mode.
-You can [35mclaim your keys[0m by visiting https://dashboard.clerk.com/apps/claim?token=ldcbhtdg8mtv8jz1og2pyhuarcy60eent7wjpe5r&return_url=http%3A%2F%2Flocalhost%3A3000%2F
+You can [35mclaim your keys[0m by visiting https://dashboard.clerk.com/apps/claim?token=lf2qumc27ko3j2x3q8vm2ieibc7kgpuishgbz87x&return_url=http%3A%2F%2Flocalhost%3A3000%2F
 
- GET /dashboard 307 in 14213ms
- ○ Compiling /login ...
-<w> [webpack.cache.PackFileCacheStrategy] Serializing big strings (192kiB) impacts deserialization performance (consider using Buffer instead and decode when needed)
- ✓ Compiled /login in 13.6s (2044 modules)
- GET /login 200 in 13990ms
- GET /dashboard 307 in 124ms
- GET /login 200 in 43ms
- POST /login 200 in 32ms
- POST /login 200 in 21ms
+ GET /login 200 in 11763ms
+ POST /login 200 in 119ms
+ POST /login 200 in 123ms
  ○ Compiling /_not-found ...
- ✓ Compiled /_not-found in 629ms (2047 modules)
- GET /login/SignIn_clerk_catchall_check_1775483884288 404 in 745ms
- GET /login 200 in 63ms
- POST /login 200 in 19ms
- POST /login 200 in 16ms
- GET /login/SignIn_clerk_catchall_check_1775483929714 404 in 37ms
+<w> [webpack.cache.PackFileCacheStrategy] Serializing big strings (192kiB) impacts deserialization performance (consider using Buffer instead and decode when needed)
+ ✓ Compiled /_not-found in 6.9s (999 modules)
 [?25h
