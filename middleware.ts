@@ -1,6 +1,7 @@
 import { clerkMiddleware, createRouteMatcher } from '@clerk/nextjs/server'
 
 const isPublicRoute = createRouteMatcher([
+  '/',
   '/login(.*)',
   '/register(.*)',
   '/api/telegram-notify(.*)', // cron Vercel — pas d'auth requise
