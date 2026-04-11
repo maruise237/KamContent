@@ -478,7 +478,7 @@ function FeaturesSection() {
       color: '#EF4444',
       title: 'Canaux & Rappels',
       body: 'Connecte tous tes réseaux et reçois des rappels Telegram personnalisés.',
-      points: ['TikTok · YouTube · Instagram · LinkedIn', 'Rappels à l'heure que tu choisis', 'Bilan IA chaque semaine'],
+      points: ['TikTok · YouTube · Instagram · LinkedIn', "Rappels à l'heure que tu choisis", 'Bilan IA chaque semaine'],
       span: '',
     },
   ]
@@ -540,13 +540,13 @@ function HowSection() {
       n: '01',
       icon: Target,
       title: 'Configure ton profil',
-      body: 'Renseigne tes niches, canaux et langue en 2 minutes. KamContent s'adapte à ton univers et ton audience.',
+      body: "Renseigne tes niches, canaux et langue en 2 minutes. KamContent s'adapte à ton univers et ton audience.",
     },
     {
       n: '02',
       icon: Brain,
       title: 'Génère et sélectionne tes idées',
-      body: 'L'IA génère 15 sujets calibrés. Sélectionne tes 3 préférés — ils sont automatiquement planifiés dans la semaine.',
+      body: "L'IA génère 15 sujets calibrés. Sélectionne tes 3 préférés — ils sont automatiquement planifiés dans la semaine.",
     },
     {
       n: '03',
@@ -609,19 +609,19 @@ function HowSection() {
 function Testimonials() {
   const quotes = [
     {
-      text: 'Avant KamContent, je cherchais mes idées pendant des heures. Maintenant j'ai ma semaine planifiée en 10 minutes. La différence est énorme.',
+      text: "Avant KamContent, je cherchais mes idées pendant des heures. Maintenant j'ai ma semaine planifiée en 10 minutes. La différence est énorme.",
       name: 'Aminata K.',
       role: 'Créatrice finance perso · TikTok',
       initials: 'AK',
     },
     {
-      text: 'Le script IA est bluffant. Il me génère une structure complète avec l'accroche et les hashtags. J'ai gagné au moins 3h de travail par semaine.',
+      text: "Le script IA est bluffant. Il me génère une structure complète avec l'accroche et les hashtags. J'ai gagné au moins 3h de travail par semaine.",
       name: 'Jean-Marc T.',
       role: 'Coach entrepreneuriat · YouTube',
       initials: 'JT',
     },
     {
-      text: 'Le Tracker m'a donné une vision honnête de ma constance. J'étais à 40%... maintenant je suis à 80%. Mesurer ça change vraiment le comportement.',
+      text: "Le Tracker m'a donné une vision honnête de ma constance. J'étais à 40%... maintenant je suis à 80%. Mesurer ça change vraiment le comportement.",
       name: 'Fatoumata D.',
       role: 'Créatrice lifestyle · Instagram',
       initials: 'FD',
@@ -676,16 +676,16 @@ function Testimonials() {
 function FAQSection() {
   const faqs = [
     {
-      q: 'C\'est vraiment gratuit ?',
+      q: "C'est vraiment gratuit ?",
       a: 'Oui. Les 15 idées IA par semaine, le planner, et le tracker sont gratuits pour toujours. Aucun paywall caché.',
     },
     {
-      q: 'Je peux annuler n\'importe quand ?',
-      a: 'Tu n\'es inscrit à rien. Pas d\'abonnement. Crée un compte, utilise l\'app, c\'est tout. Zéro engagement.',
+      q: "Je peux annuler n'importe quand ?",
+      a: "Tu n'es inscrit à rien. Pas d'abonnement. Crée un compte, utilise l'app, c'est tout. Zéro engagement.",
     },
     {
       q: 'Ça fonctionne pour tous les créateurs ?',
-      a: 'Oui, mais c\'est optimisé pour les niches africaines et européennes : entrepreneuriat, finance, lifestyle, tech, coaching, etc.',
+      a: "Oui, mais c'est optimisé pour les niches africaines et européennes : entrepreneuriat, finance, lifestyle, tech, coaching, etc.",
     },
   ]
 
@@ -720,7 +720,7 @@ function CTASection() {
     'Script complet + description + hashtags',
     'Tracker de constance avec streak',
     '5 canaux connectés (TikTok, YouTube, etc)',
-    'Rappels Telegram à l\'heure que tu choisis',
+    "Rappels Telegram à l'heure que tu choisis",
   ]
 
   return (
