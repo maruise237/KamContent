@@ -377,19 +377,19 @@ function ProblemSection() {
     {
       icon: Clock,
       title: "L'angoisse de la page blanche",
-      body: 'Tu passes 2-3h à chercher quoi publier... et finalement tu ne postes rien. Le temps s\'écoule, l\'audience grandit ailleurs.',
-      stat: '72% des créateurs abandonnent en moins de 90 jours',
+      body: "Tu passes 2-3h à chercher quoi publier... et finalement tu ne postes rien. Le temps s'écoule, l'audience grandit ailleurs.",
+      stat: "72% des créateurs abandonnent en moins de 90 jours",
     },
     {
       icon: RefreshCw,
       title: 'La constance tue ta croissance',
-      body: 'Tu publies 5 fois une semaine, puis tu disparais 3 semaines. L\'algorithme voit ça : "créateur inactif". Fini la visibilité.',
+      body: "Tu publies 5 fois une semaine, puis tu disparais 3 semaines. L'algorithme voit ça : créateur inactif. Fini la visibilité.",
       stat: 'La constance = 10x plus important que la qualité',
     },
     {
       icon: BarChart3,
       title: 'Tu ne sais pas ce qui marche',
-      body: 'Sans données claires, tu devines. Est-ce que c\'est tes hashtags? Le timing? Le format? Tu tournes en rond depuis 6 mois.',
+      body: "Sans données claires, tu devines. Est-ce que c'est tes hashtags? Le timing? Le format? Tu tournes en rond depuis 6 mois.",
       stat: 'Les créateurs mesurés croissent 5x plus vite',
     },
   ]
