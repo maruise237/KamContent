@@ -6,7 +6,7 @@ import './globals.css'
 
 export const metadata: Metadata = {
   title: 'KamContent — Arrête de réfléchir à quoi poster',
-  description: 'Génère des sujets de vidéos, organise ton calendrier éditorial et suis ta constance de publication.',
+  description: 'Génère tes idées et scripts de contenu IA, planifie ton calendrier éditorial et suis ta constance de publication.',
   keywords: ['création de contenu', 'calendrier éditorial', 'TikTok', 'YouTube', 'constance'],
   icons: {
     icon: '/logo.svg',
