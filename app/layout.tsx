@@ -67,11 +67,11 @@ export default function RootLayout({
             <Toaster position="bottom-right" richColors theme="dark" />
           </ThemeProvider>
           <Script
-            id="microsoft-clarity"
+            id="umami-analytics"
+            defer
+            src="https://umami.kamtech.online/script.js"
+            data-website-id="c84f2a3a-55f8-4ded-8c85-e073d299171a"
             strategy="afterInteractive"
-            dangerouslySetInnerHTML={{
-              __html: `(function(c,l,a,r,i,t,y){c[a]=c[a]||function(){(c[a].q=c[a].q||[]).push(arguments)};t=l.createElement(r);t.async=1;t.src="https://www.clarity.ms/tag/"+i;y=l.getElementsByTagName(r)[0];y.parentNode.insertBefore(t,y);})(window,document,"clarity","script","wagxfihwlf");`,
-            }}
           />
         </body>
       </html>
