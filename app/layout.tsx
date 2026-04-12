@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 import { ClerkProvider } from '@clerk/nextjs'
 import { ThemeProvider } from '@/components/shared/ThemeProvider'
 import { Toaster } from 'sonner'
+import Script from 'next/script'
 import './globals.css'
 
 const BASE_URL = 'https://kamcontent.app'
@@ -65,6 +66,13 @@ export default function RootLayout({
             {children}
             <Toaster position="bottom-right" richColors theme="dark" />
           </ThemeProvider>
+          <Script
+            id="microsoft-clarity"
+            strategy="afterInteractive"
+            dangerouslySetInnerHTML={{
+              __html: `(function(c,l,a,r,i,t,y){c[a]=c[a]||function(){(c[a].q=c[a].q||[]).push(arguments)};t=l.createElement(r);t.async=1;t.src="https://www.clarity.ms/tag/"+i;y=l.getElementsByTagName(r)[0];y.parentNode.insertBefore(t,y);})(window,document,"clarity","script","wagxfihwlf");`,
+            }}
+          />
         </body>
       </html>
     </ClerkProvider>
