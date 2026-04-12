@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { Loader2, FileText, CheckSquare, Eye, Trash2, CalendarClock, Lock, SkipForward, Copy, Check, FileDown, RefreshCw } from 'lucide-react'
+import { Loader2, FileText, CheckSquare, Eye, Trash2, CalendarClock, Lock, SkipForward, Copy, Check, FileDown, RefreshCw, Maximize2, X, ChevronUp, ChevronDown } from 'lucide-react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -332,6 +332,8 @@ function ScriptDialog({ open, onClose, topic, script, onRegenerate, regenerating
   const [showRegenerate, setShowRegenerate] = useState(false)
   const [instructions, setInstructions] = useState('')
   const [exportingPdf, setExportingPdf] = useState(false)
+  const [showReader, setShowReader] = useState(false)
+  const [fontSize, setFontSize] = useState(22)
 
   const points = script ? (script.points as unknown as ScriptPoint[]) : []
   const hashtags = script?.hashtags ?? []
@@ -444,6 +446,76 @@ function ScriptDialog({ open, onClose, topic, script, onRegenerate, regenerating
   }
 
   return (
+    <>
+    {/* ── Mode lecture plein écran (téléprompter) ── */}
+    {showReader && script && (
+      <div className="fixed inset-0 z-[200] bg-[#050709] flex flex-col">
+        {/* Barre du haut */}
+        <div className="flex items-center justify-between px-5 py-3 border-b border-white/[0.07] shrink-0 bg-[#07090F]">
+          <p className="text-white/50 text-sm truncate flex-1 mr-4 font-medium">{topic.title}</p>
+          <div className="flex items-center gap-1">
+            <button
+              onClick={() => setFontSize(s => Math.max(14, s - 2))}
+              className="text-white/40 hover:text-white w-8 h-8 flex items-center justify-center rounded-lg hover:bg-white/10 transition-colors"
+              title="Réduire la police"
+            >
+              <ChevronDown className="h-4 w-4" />
+            </button>
+            <span className="text-white/30 text-xs w-8 text-center">{fontSize}px</span>
+            <button
+              onClick={() => setFontSize(s => Math.min(40, s + 2))}
+              className="text-white/40 hover:text-white w-8 h-8 flex items-center justify-center rounded-lg hover:bg-white/10 transition-colors"
+              title="Agrandir la police"
+            >
+              <ChevronUp className="h-4 w-4" />
+            </button>
+            <button
+              onClick={() => setShowReader(false)}
+              className="text-white/40 hover:text-white ml-2 w-8 h-8 flex items-center justify-center rounded-lg hover:bg-white/10 transition-colors"
+              title="Fermer"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          </div>
+        </div>
+
+        {/* Contenu défilant */}
+        <div className="flex-1 overflow-y-auto px-6 py-10 max-w-2xl mx-auto w-full">
+          {/* Intro */}
+          <p className="text-[#29AAE2]/50 text-[10px] uppercase tracking-[0.2em] font-semibold mb-4">Intro</p>
+          <p className="text-white leading-relaxed mb-12" style={{ fontSize: `${fontSize}px`, lineHeight: 1.65 }}>
+            {script.intro}
+          </p>
+
+          {points.map((point) => (
+            <div key={point.order} className="mb-12">
+              <p className="text-[#29AAE2]/50 text-[10px] uppercase tracking-[0.2em] font-semibold mb-2">
+                Point {point.order}
+              </p>
+              <p className="text-[#29AAE2] font-semibold mb-4" style={{ fontSize: `${Math.round(fontSize * 0.75)}px` }}>
+                {point.title}
+              </p>
+              <p className="text-white leading-relaxed" style={{ fontSize: `${fontSize}px`, lineHeight: 1.65 }}>
+                {point.content}
+              </p>
+            </div>
+          ))}
+
+          {/* Outro */}
+          <p className="text-[#29AAE2]/50 text-[10px] uppercase tracking-[0.2em] font-semibold mb-4">Outro</p>
+          <p className="text-white leading-relaxed mb-12" style={{ fontSize: `${fontSize}px`, lineHeight: 1.65 }}>
+            {script.outro}
+          </p>
+
+          {/* CTA */}
+          <p className="text-[#29AAE2]/50 text-[10px] uppercase tracking-[0.2em] font-semibold mb-4">CTA</p>
+          <p className="text-[#29AAE2] font-semibold leading-relaxed mb-24" style={{ fontSize: `${fontSize}px`, lineHeight: 1.65 }}>
+            {script.cta}
+          </p>
+        </div>
+      </div>
+    )}
+
     <Dialog open={open} onOpenChange={onClose}>
       <DialogContent className="flex flex-col overflow-hidden w-full max-w-2xl h-[100dvh] rounded-none sm:rounded-xl sm:h-auto sm:max-h-[85vh] m-0 sm:m-auto p-4 sm:p-6">
         <DialogHeader className="shrink-0">
@@ -457,6 +529,10 @@ function ScriptDialog({ open, onClose, topic, script, onRegenerate, regenerating
               <Button size="sm" variant="outline" className="h-7 px-2 text-xs" onClick={handleExportPdf} disabled={exportingPdf || !script}>
                 {exportingPdf ? <Loader2 className="h-3 w-3 mr-1 animate-spin" /> : <FileDown className="h-3 w-3 mr-1" />}
                 PDF
+              </Button>
+              <Button size="sm" variant="outline" className="h-7 px-2 text-xs" onClick={() => setShowReader(true)} disabled={!script}>
+                <Maximize2 className="h-3 w-3 mr-1" />
+                Lire
               </Button>
             </div>
           </div>
@@ -582,5 +658,6 @@ function ScriptDialog({ open, onClose, topic, script, onRegenerate, regenerating
         </div>
       </DialogContent>
     </Dialog>
+    </>
   )
 }
