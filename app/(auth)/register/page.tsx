@@ -157,7 +157,18 @@ export default function RegisterPage() {
             }}
           />
 
-          <p className="text-center text-xs text-white/20 mt-6">
+          <p className="text-center text-xs text-white/25 mt-4 leading-relaxed px-2">
+            En créant un compte, tu acceptes nos{' '}
+            <Link href="/terms" className="text-white/45 hover:text-[#29AAE2] underline underline-offset-2 transition-colors">
+              Conditions générales
+            </Link>{' '}
+            et notre{' '}
+            <Link href="/privacy" className="text-white/45 hover:text-[#29AAE2] underline underline-offset-2 transition-colors">
+              Politique de confidentialité
+            </Link>.
+          </p>
+
+          <p className="text-center text-xs text-white/20 mt-3">
             Déjà un compte ?{' '}
             <Link href="/login" className="text-[#29AAE2] hover:underline">
               Se connecter
