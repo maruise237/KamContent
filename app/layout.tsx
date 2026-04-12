@@ -2,7 +2,7 @@ import type { Metadata } from 'next'
 import { ClerkProvider } from '@clerk/nextjs'
 import { ThemeProvider } from '@/components/shared/ThemeProvider'
 import { Toaster } from 'sonner'
-import { CookieConsent } from '@/components/shared/CookieConsent'
+import Script from 'next/script'
 import './globals.css'
 
 const BASE_URL = 'https://kamcontent.app'
@@ -65,7 +65,14 @@ export default function RootLayout({
           >
             {children}
             <Toaster position="bottom-right" richColors theme="dark" />
-            <CookieConsent />
+          </ThemeProvider>
+          <Script
+            id="umami-analytics"
+            defer
+            src="https://umami.kamtech.online/script.js"
+            data-website-id="c84f2a3a-55f8-4ded-8c85-e073d299171a"
+            strategy="afterInteractive"
+          />
         </body>
       </html>
     </ClerkProvider>
