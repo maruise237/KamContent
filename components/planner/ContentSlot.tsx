@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
+import { createPortal } from 'react-dom'
 import { useRouter } from 'next/navigation'
 import { Loader2, FileText, CheckSquare, Eye, Trash2, CalendarClock, Lock, SkipForward, Copy, Check, FileDown, RefreshCw, Maximize2, X, ChevronUp, ChevronDown, Repeat2, Play, Pause } from 'lucide-react'
 import { toast } from 'sonner'
@@ -485,71 +486,72 @@ function ScriptDialog({ open, onClose, topic, script, onRegenerate, regenerating
     setInstructions('')
   }
 
-  return (
-    <>
-    {/* ── Mode lecture plein écran (téléprompter) ── */}
-    {showReader && script && (
-      <div className="fixed inset-0 z-[200] bg-[#050709] flex flex-col">
-        <div className="flex items-center justify-between px-4 py-2.5 border-b border-white/[0.07] shrink-0 bg-[#07090F] gap-3">
-          <p className="text-white/50 text-sm truncate flex-1 font-medium min-w-0">{topic.title}</p>
-          <div className="flex items-center gap-1 shrink-0">
-            <button onClick={() => setScrollSpeed(s => Math.max(1, s - 1))} className="text-white/40 hover:text-white w-7 h-7 flex items-center justify-center rounded-lg hover:bg-white/10 transition-colors" title="Ralentir">
-              <ChevronDown className="h-3.5 w-3.5" />
-            </button>
-            <span className="text-white/30 text-[11px] w-6 text-center tabular-nums">{scrollSpeed}×</span>
-            <button onClick={() => setScrollSpeed(s => Math.min(10, s + 1))} className="text-white/40 hover:text-white w-7 h-7 flex items-center justify-center rounded-lg hover:bg-white/10 transition-colors" title="Accélérer">
-              <ChevronUp className="h-3.5 w-3.5" />
-            </button>
-            <button
-              onClick={() => setScrolling(s => !s)}
-              className={`w-8 h-8 flex items-center justify-center rounded-lg transition-colors ml-1 ${scrolling ? 'bg-[#29AAE2]/20 text-[#29AAE2] hover:bg-[#29AAE2]/30' : 'text-white/40 hover:text-white hover:bg-white/10'}`}
-              title={scrolling ? 'Pause' : 'Démarrer le défilement'}
-            >
-              {scrolling ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />}
-            </button>
-            <div className="w-px h-5 bg-white/10 mx-1" />
-            <button onClick={() => setFontSize(s => Math.max(14, s - 2))} className="text-white/40 hover:text-white w-7 h-7 flex items-center justify-center rounded-lg hover:bg-white/10 transition-colors text-xs font-bold" title="Réduire la police">A−</button>
-            <span className="text-white/30 text-[11px] w-7 text-center tabular-nums">{fontSize}</span>
-            <button onClick={() => setFontSize(s => Math.min(40, s + 2))} className="text-white/40 hover:text-white w-7 h-7 flex items-center justify-center rounded-lg hover:bg-white/10 transition-colors text-xs font-bold" title="Agrandir la police">A+</button>
-            <button onClick={() => setShowReader(false)} className="text-white/40 hover:text-white ml-1 w-8 h-8 flex items-center justify-center rounded-lg hover:bg-white/10 transition-colors" title="Fermer">
-              <X className="h-4 w-4" />
-            </button>
-          </div>
-        </div>
-
-        {/* tap pour pause/reprendre */}
-        <div ref={scrollRef} onClick={() => setScrolling(s => !s)} className="flex-1 overflow-y-auto px-6 py-10 max-w-2xl mx-auto w-full cursor-pointer select-none">
-          <ReaderSection label="Intro" content={script.intro} fontSize={fontSize} />
-          {points.map((point) => (
-            <div key={point.order} className="mb-12">
-              <p className="text-[#29AAE2]/50 text-[10px] uppercase tracking-[0.2em] font-semibold mb-2">Point {point.order}</p>
-              <p className="text-[#29AAE2] font-semibold mb-4" style={{ fontSize: `${Math.round(fontSize * 0.75)}px` }}>{point.title}</p>
-              <p className="text-white leading-relaxed" style={{ fontSize: `${fontSize}px`, lineHeight: 1.65 }}>{point.content}</p>
-            </div>
-          ))}
-          <ReaderSection label="Outro" content={script.outro} fontSize={fontSize} />
-          <ReaderSection label="CTA" content={script.cta} fontSize={fontSize} accent last />
+  const readerOverlay = showReader && script ? (
+    <div className="fixed inset-0 z-[9999] bg-[#050709] flex flex-col">
+      <div className="flex items-center justify-between px-3 py-2 border-b border-white/[0.07] shrink-0 bg-[#07090F] gap-2">
+        <p className="text-white/50 text-xs truncate flex-1 font-medium min-w-0">{topic.title}</p>
+        <div className="flex items-center gap-0.5 shrink-0">
+          <button onClick={() => setScrollSpeed(s => Math.max(1, s - 1))} className="text-white/40 hover:text-white w-7 h-7 flex items-center justify-center rounded-lg hover:bg-white/10 transition-colors" title="Ralentir">
+            <ChevronDown className="h-3.5 w-3.5" />
+          </button>
+          <span className="text-white/30 text-[11px] w-5 text-center tabular-nums">{scrollSpeed}×</span>
+          <button onClick={() => setScrollSpeed(s => Math.min(10, s + 1))} className="text-white/40 hover:text-white w-7 h-7 flex items-center justify-center rounded-lg hover:bg-white/10 transition-colors" title="Accélérer">
+            <ChevronUp className="h-3.5 w-3.5" />
+          </button>
+          <button
+            onClick={() => setScrolling(s => !s)}
+            className={`w-8 h-8 flex items-center justify-center rounded-lg transition-colors ml-0.5 ${scrolling ? 'bg-[#29AAE2]/20 text-[#29AAE2] hover:bg-[#29AAE2]/30' : 'text-white/40 hover:text-white hover:bg-white/10'}`}
+            title={scrolling ? 'Pause' : 'Démarrer le défilement'}
+          >
+            {scrolling ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />}
+          </button>
+          <div className="w-px h-5 bg-white/10 mx-1" />
+          <button onClick={() => setFontSize(s => Math.max(14, s - 2))} className="text-white/40 hover:text-white w-7 h-7 flex items-center justify-center rounded-lg hover:bg-white/10 transition-colors text-xs font-bold" title="Réduire la police">A−</button>
+          <span className="text-white/30 text-[11px] w-6 text-center tabular-nums">{fontSize}</span>
+          <button onClick={() => setFontSize(s => Math.min(40, s + 2))} className="text-white/40 hover:text-white w-7 h-7 flex items-center justify-center rounded-lg hover:bg-white/10 transition-colors text-xs font-bold" title="Agrandir la police">A+</button>
+          <button onClick={() => setShowReader(false)} className="text-white/40 hover:text-white ml-0.5 w-8 h-8 flex items-center justify-center rounded-lg hover:bg-white/10 transition-colors" title="Fermer">
+            <X className="h-4 w-4" />
+          </button>
         </div>
       </div>
-    )}
+
+      {/* tap pour pause/reprendre */}
+      <div ref={scrollRef} onClick={() => setScrolling(s => !s)} className="flex-1 overflow-y-auto px-6 py-10 max-w-2xl mx-auto w-full cursor-pointer select-none">
+        <ReaderSection label="Intro" content={script.intro} fontSize={fontSize} />
+        {points.map((point) => (
+          <div key={point.order} className="mb-12">
+            <p className="text-[#29AAE2]/50 text-[10px] uppercase tracking-[0.2em] font-semibold mb-2">Point {point.order}</p>
+            <p className="text-[#29AAE2] font-semibold mb-4" style={{ fontSize: `${Math.round(fontSize * 0.75)}px` }}>{point.title}</p>
+            <p className="text-white leading-relaxed" style={{ fontSize: `${fontSize}px`, lineHeight: 1.65 }}>{point.content}</p>
+          </div>
+        ))}
+        <ReaderSection label="Outro" content={script.outro} fontSize={fontSize} />
+        <ReaderSection label="CTA" content={script.cta} fontSize={fontSize} accent last />
+      </div>
+    </div>
+  ) : null
+
+  return (
+    <>
+    {typeof document !== 'undefined' && readerOverlay && createPortal(readerOverlay, document.body)}
 
     <Dialog open={open} onOpenChange={onClose}>
       <DialogContent className="flex flex-col overflow-hidden w-full max-w-2xl h-[100dvh] rounded-none sm:rounded-xl sm:h-auto sm:max-h-[85vh] m-0 sm:m-auto p-4 sm:p-6">
         <DialogHeader className="shrink-0">
           <div className="flex items-start justify-between gap-2 pr-6">
             <DialogTitle className="font-display leading-tight">{topic.title}</DialogTitle>
-            <div className="flex gap-1.5 shrink-0">
-              <Button size="sm" variant="outline" className="h-7 px-2 text-xs" onClick={handleCopy}>
-                {copied ? <Check className="h-3 w-3 mr-1" /> : <Copy className="h-3 w-3 mr-1" />}
-                {copied ? 'Copié' : 'Copier'}
+            <div className="flex gap-1 shrink-0">
+              <Button size="sm" variant="outline" className="h-7 w-7 sm:w-auto sm:px-2 p-0 text-xs" onClick={handleCopy} title={copied ? 'Copié' : 'Copier le script'}>
+                {copied ? <Check className="h-3 w-3 sm:mr-1" /> : <Copy className="h-3 w-3 sm:mr-1" />}
+                <span className="hidden sm:inline">{copied ? 'Copié' : 'Copier'}</span>
               </Button>
-              <Button size="sm" variant="outline" className="h-7 px-2 text-xs" onClick={handleExportPdf} disabled={exportingPdf || !script}>
-                {exportingPdf ? <Loader2 className="h-3 w-3 mr-1 animate-spin" /> : <FileDown className="h-3 w-3 mr-1" />}
-                PDF
+              <Button size="sm" variant="outline" className="h-7 w-7 sm:w-auto sm:px-2 p-0 text-xs" onClick={handleExportPdf} disabled={exportingPdf || !script} title="Télécharger en PDF">
+                {exportingPdf ? <Loader2 className="h-3 w-3 sm:mr-1 animate-spin" /> : <FileDown className="h-3 w-3 sm:mr-1" />}
+                <span className="hidden sm:inline">PDF</span>
               </Button>
-              <Button size="sm" variant="outline" className="h-7 px-2 text-xs" onClick={() => setShowReader(true)} disabled={!script}>
-                <Maximize2 className="h-3 w-3 mr-1" />
-                Lire
+              <Button size="sm" variant="outline" className="h-7 w-7 sm:w-auto sm:px-2 p-0 text-xs" onClick={() => setShowReader(true)} disabled={!script} title="Mode téléprompter">
+                <Maximize2 className="h-3 w-3 sm:mr-1" />
+                <span className="hidden sm:inline">Lire</span>
               </Button>
             </div>
           </div>
