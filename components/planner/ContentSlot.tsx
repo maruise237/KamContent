@@ -1,8 +1,8 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
-import { Loader2, FileText, CheckSquare, Eye, Trash2, CalendarClock, Lock, SkipForward, Copy, Check, FileDown, RefreshCw, Maximize2, X, ChevronUp, ChevronDown, Repeat2 } from 'lucide-react'
+import { Loader2, FileText, CheckSquare, Eye, Trash2, CalendarClock, Lock, SkipForward, Copy, Check, FileDown, RefreshCw, Maximize2, X, ChevronUp, ChevronDown, Repeat2, Play, Pause } from 'lucide-react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -346,6 +346,44 @@ function ScriptDialog({ open, onClose, topic, script, onRegenerate, regenerating
   const [exportingPdf, setExportingPdf] = useState(false)
   const [showReader, setShowReader] = useState(false)
   const [fontSize, setFontSize] = useState(22)
+  const [scrolling, setScrolling] = useState(false)
+  const [scrollSpeed, setScrollSpeed] = useState(3)
+
+  const scrollRef = useRef<HTMLDivElement>(null)
+  const rafRef = useRef<number | null>(null)
+  // Refs pour accéder aux valeurs courantes dans le RAF callback
+  const scrollingRef = useRef(scrolling)
+  const scrollSpeedRef = useRef(scrollSpeed)
+  scrollingRef.current = scrolling
+  scrollSpeedRef.current = scrollSpeed
+
+  // Défilement automatique via requestAnimationFrame
+  useEffect(() => {
+    if (!scrolling) {
+      if (rafRef.current) { cancelAnimationFrame(rafRef.current); rafRef.current = null }
+      return
+    }
+    function step() {
+      const el = scrollRef.current
+      if (!el || !scrollingRef.current) return
+      el.scrollTop += scrollSpeedRef.current * 0.4
+      if (el.scrollTop + el.clientHeight >= el.scrollHeight - 8) {
+        setScrolling(false)
+        return
+      }
+      rafRef.current = requestAnimationFrame(step)
+    }
+    rafRef.current = requestAnimationFrame(step)
+    return () => { if (rafRef.current) { cancelAnimationFrame(rafRef.current); rafRef.current = null } }
+  }, [scrolling])
+
+  // Arrêt propre à la fermeture du reader
+  useEffect(() => {
+    if (!showReader) {
+      setScrolling(false)
+      if (rafRef.current) { cancelAnimationFrame(rafRef.current); rafRef.current = null }
+    }
+  }, [showReader])
 
   const points = script ? (script.points as unknown as ScriptPoint[]) : []
   const hashtags = script?.hashtags ?? []
@@ -463,27 +501,64 @@ function ScriptDialog({ open, onClose, topic, script, onRegenerate, regenerating
     {showReader && script && (
       <div className="fixed inset-0 z-[200] bg-[#050709] flex flex-col">
         {/* Barre du haut */}
-        <div className="flex items-center justify-between px-5 py-3 border-b border-white/[0.07] shrink-0 bg-[#07090F]">
-          <p className="text-white/50 text-sm truncate flex-1 mr-4 font-medium">{topic.title}</p>
-          <div className="flex items-center gap-1">
+        <div className="flex items-center justify-between px-4 py-2.5 border-b border-white/[0.07] shrink-0 bg-[#07090F] gap-3">
+          <p className="text-white/50 text-sm truncate flex-1 font-medium min-w-0">{topic.title}</p>
+
+          <div className="flex items-center gap-1 shrink-0">
+            {/* Contrôles vitesse défilement */}
+            <button
+              onClick={() => setScrollSpeed(s => Math.max(1, s - 1))}
+              className="text-white/40 hover:text-white w-7 h-7 flex items-center justify-center rounded-lg hover:bg-white/10 transition-colors"
+              title="Ralentir"
+            >
+              <ChevronDown className="h-3.5 w-3.5" />
+            </button>
+            <span className="text-white/30 text-[11px] w-6 text-center tabular-nums">{scrollSpeed}×</span>
+            <button
+              onClick={() => setScrollSpeed(s => Math.min(10, s + 1))}
+              className="text-white/40 hover:text-white w-7 h-7 flex items-center justify-center rounded-lg hover:bg-white/10 transition-colors"
+              title="Accélérer"
+            >
+              <ChevronUp className="h-3.5 w-3.5" />
+            </button>
+
+            {/* Play / Pause */}
+            <button
+              onClick={() => setScrolling(s => !s)}
+              className={`w-8 h-8 flex items-center justify-center rounded-lg transition-colors ml-1 ${
+                scrolling
+                  ? 'bg-[#29AAE2]/20 text-[#29AAE2] hover:bg-[#29AAE2]/30'
+                  : 'text-white/40 hover:text-white hover:bg-white/10'
+              }`}
+              title={scrolling ? 'Pause' : 'Démarrer le défilement'}
+            >
+              {scrolling ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />}
+            </button>
+
+            {/* Séparateur */}
+            <div className="w-px h-5 bg-white/10 mx-1" />
+
+            {/* Taille de police */}
             <button
               onClick={() => setFontSize(s => Math.max(14, s - 2))}
-              className="text-white/40 hover:text-white w-8 h-8 flex items-center justify-center rounded-lg hover:bg-white/10 transition-colors"
+              className="text-white/40 hover:text-white w-7 h-7 flex items-center justify-center rounded-lg hover:bg-white/10 transition-colors text-xs font-bold"
               title="Réduire la police"
             >
-              <ChevronDown className="h-4 w-4" />
+              A−
             </button>
-            <span className="text-white/30 text-xs w-8 text-center">{fontSize}px</span>
+            <span className="text-white/30 text-[11px] w-7 text-center tabular-nums">{fontSize}</span>
             <button
               onClick={() => setFontSize(s => Math.min(40, s + 2))}
-              className="text-white/40 hover:text-white w-8 h-8 flex items-center justify-center rounded-lg hover:bg-white/10 transition-colors"
+              className="text-white/40 hover:text-white w-7 h-7 flex items-center justify-center rounded-lg hover:bg-white/10 transition-colors text-xs font-bold"
               title="Agrandir la police"
             >
-              <ChevronUp className="h-4 w-4" />
+              A+
             </button>
+
+            {/* Fermer */}
             <button
               onClick={() => setShowReader(false)}
-              className="text-white/40 hover:text-white ml-2 w-8 h-8 flex items-center justify-center rounded-lg hover:bg-white/10 transition-colors"
+              className="text-white/40 hover:text-white ml-1 w-8 h-8 flex items-center justify-center rounded-lg hover:bg-white/10 transition-colors"
               title="Fermer"
             >
               <X className="h-4 w-4" />
@@ -491,8 +566,12 @@ function ScriptDialog({ open, onClose, topic, script, onRegenerate, regenerating
           </div>
         </div>
 
-        {/* Contenu défilant */}
-        <div className="flex-1 overflow-y-auto px-6 py-10 max-w-2xl mx-auto w-full">
+        {/* Contenu défilant — tap pour pause/reprendre */}
+        <div
+          ref={scrollRef}
+          onClick={() => setScrolling(s => !s)}
+          className="flex-1 overflow-y-auto px-6 py-10 max-w-2xl mx-auto w-full cursor-pointer select-none"
+        >
           {/* Intro */}
           <p className="text-[#29AAE2]/50 text-[10px] uppercase tracking-[0.2em] font-semibold mb-4">Intro</p>
           <p className="text-white leading-relaxed mb-12" style={{ fontSize: `${fontSize}px`, lineHeight: 1.65 }}>
