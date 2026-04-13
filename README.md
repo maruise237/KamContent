@@ -1,60 +1,103 @@
 # KamContent
 
-KamContent est une plateforme SaaS de stratégie de contenu pilotée par l'IA, conçue pour aider les créateurs à maintenir leur constance sur les réseaux sociaux. Elle automatise l'idéation, la planification et le suivi des performances.
+**Plateforme SaaS de stratégie de contenu pilotée par l'IA — pour les créateurs qui veulent rester constants.**
 
-## 🚀 Fonctionnalités Clés
+KamContent automatise l'idéation, la planification, la rédaction de scripts et le suivi de vos publications sur TikTok, YouTube, Instagram, LinkedIn et WhatsApp.
 
-Le projet est articulé autour de trois modules principaux :
+---
 
-- **🧠 The Brain (Le Cerveau)** : Génération intelligente de sujets, d'accroches (hooks) et de scripts complets adaptés à votre niche et à vos canaux de diffusion (TikTok, YouTube, Instagram, etc.) en utilisant divers modèles d'IA.
-- **📅 The Planner (Le Planificateur)** : Un calendrier éditorial interactif pour organiser vos publications de la semaine, gérer les statuts (idée, planifié, scripté, publié) et visualiser votre workflow.
-- **📊 The Tracker (Le Suivi)** : Analyse de la constance avec calcul de scores de régularité, suivi des séries (streaks) et récapitulatifs hebdomadaires pour rester motivé.
+## Modules
 
-## 🛠️ Stack Technique
+### 🧠 Brain — Génération de sujets
+- Génère jusqu'à 15 sujets/semaine basés sur votre niche, vos canaux et vos idées
+- Chaque sujet inclut : titre, hook d'accroche, angle différenciant, format et canal cibles
+- Filtres par format (court, long, texte) et par canal
+- Mode "Ajouter +15" pour enrichir sans remplacer les idées existantes
+- Sélection jusqu'à 3 sujets à planifier en un clic
+- Réutilisation d'un sujet publié → pré-remplit le Brain avec un nouveau contexte
 
-- **Framework** : [Next.js 14](https://nextjs.org/) (App Router)
-- **Langage** : TypeScript
-- **Style & UI** : Tailwind CSS, Radix UI, Lucide React, Framer Motion
-- **Authentification** : [Clerk](https://clerk.com/)
-- **Base de Données** : PostgreSQL (via Supabase)
-- **ORM** : [Drizzle ORM](https://orm.drizzle.team/)
-- **Intelligence Artificielle** : Vercel AI SDK (supporte Anthropic, OpenAI, Google Gemini, Mistral, DeepSeek)
-- **Notifications & Intégrations** :
-    - Telegram Bot (Notifications de rappel et félicitations)
-    - WhatsApp (via Evolution API)
-- **Infrastructure** : Docker & Docker Compose, SearXNG (moteur de recherche privé pour le sourcing de contenu)
+### 📅 Planner — Calendrier éditorial
+- Vue semaine avec glisser-déposer (drag & drop) entre les créneaux
+- Statuts progressifs : `idée → planifié → scripté → publié`
+- Génération de script IA complet (intro, corps, outro, CTA) en un clic
+- **Mode téléprompter** : lecture plein écran avec taille de police réglable
+- **Défilement automatique** ajustable (vitesse 1× à 10×), tap pour pause
+- Export / copie du script en texte brut
+- Publication directe avec enregistrement de la date
 
-## 📦 Installation et Configuration
+### 📊 Tracker — Suivi de constance
+- Score de constance mensuelle basé sur les 4 dernières semaines
+- Streak de semaines consécutives avec au moins une publication
+- Historique des publications par semaine
+
+### 🏠 Dashboard — Vue d'ensemble
+- Salutation contextuelle selon l'heure
+- Bilan hebdomadaire avec message de coaching personnalisé
+- Prochain contenu à créer mis en avant
+- Raccourcis rapides vers les 3 modules
+
+---
+
+## Stack technique
+
+| Couche | Technologie |
+|---|---|
+| Framework | Next.js 14 (App Router) |
+| Langage | TypeScript |
+| Style | Tailwind CSS v3 + shadcn/ui + Framer Motion |
+| Auth | Clerk |
+| Base de données | PostgreSQL via Supabase |
+| ORM | Drizzle ORM |
+| IA | Vercel AI SDK — Anthropic, OpenAI, Google Gemini, Mistral, DeepSeek |
+| Notifications | Telegram Bot + WhatsApp (Evolution API) |
+| Analytics | Umami (self-hosted ou cloud) |
+| Recherche | SearXNG (moteur privé pour sourcing de contenu) |
+| Infrastructure | Docker + Docker Compose |
+
+---
+
+## Installation
 
 ### Prérequis
 
-- Node.js (v18+)
-- Docker et Docker Compose
-- Comptes Clerk, Supabase et un fournisseur d'IA (ex: Anthropic)
+- Node.js 18+
+- Docker + Docker Compose
+- Comptes : Clerk, Supabase, un fournisseur IA (ex: Anthropic)
 
-### Configuration de l'environnement
+### Variables d'environnement
 
-Créez un fichier `.env` à la racine du projet (inspirez-vous du `docker-compose.yml` pour les variables nécessaires) :
+Créez un fichier `.env` à la racine :
 
 ```env
-# Database
+# Base de données
 DATABASE_URL=postgresql://user:password@localhost:5432/kamcontent
 
-# Clerk Auth
+# Clerk
 NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=pk_test_...
 CLERK_SECRET_KEY=sk_test_...
+NEXT_PUBLIC_CLERK_SIGN_IN_URL=/login
+NEXT_PUBLIC_CLERK_SIGN_UP_URL=/register
+NEXT_PUBLIC_CLERK_AFTER_SIGN_IN_URL=/dashboard
+NEXT_PUBLIC_CLERK_AFTER_SIGN_UP_URL=/dashboard
 
-# AI Configuration
+# IA (choisissez un provider)
 AI_PROVIDER=anthropic
 ANTHROPIC_API_KEY=sk-ant-...
+# OPENAI_API_KEY=sk-...
+# GOOGLE_GENERATIVE_AI_API_KEY=...
 
-# Search (SearXNG)
+# Recherche
 SEARXNG_URL=http://localhost:8080
 
-# Notifications
+# Notifications (optionnel)
 TELEGRAM_BOT_TOKEN=...
+TELEGRAM_CHAT_ID=...
 EVOLUTION_API_URL=...
 EVOLUTION_API_KEY=...
+EVOLUTION_INSTANCE=...
+
+# Sécurité Cron
+CRON_SECRET=votre_secret_ici
 ```
 
 ### Lancement avec Docker
@@ -63,39 +106,75 @@ EVOLUTION_API_KEY=...
 docker-compose up -d
 ```
 
-### Développement Local
+Cela démarre : l'application Next.js, PostgreSQL et SearXNG.
 
-1. Installez les dépendances :
-   ```bash
-   npm install
-   ```
+### Développement local
 
-2. Gérez la base de données :
-   ```bash
-   npm run db:generate  # Générer les migrations
-   npm run db:push      # Pousser le schéma vers la DB
-   ```
+```bash
+# Installer les dépendances
+npm install
 
-3. Lancez le serveur de développement :
-   ```bash
-   npm run dev
-   ```
+# Pousser le schéma vers la base de données
+npm run db:push
 
-## 🏗️ Structure du Projet
+# Démarrer le serveur de développement
+npm run dev
+```
 
-- `/app` : Routes et pages Next.js (App Router).
-- `/components` : Composants React réutilisables, organisés par module (brain, planner, tracker, ui).
-- `/lib` : Logique métier, clients API (AI, DB, Telegram, WhatsApp) et utilitaires.
-- `/drizzle` : Fichiers de migration de la base de données.
-- `/public` : Assets statiques (logos, icônes).
-- `/types` : Définitions de types TypeScript partagées.
-
-## 📝 Scripts Disponibles
-
-- `npm run dev` : Lance l'application en mode développement.
-- `npm run build` : Compile l'application pour la production.
-- `npm run lint` : Vérifie la qualité du code.
-- `npm run db:studio` : Ouvre l'interface de gestion de base de données Drizzle Studio.
+L'application est disponible sur [http://localhost:3000](http://localhost:3000).
 
 ---
-Développé avec ❤️ pour les créateurs de contenu.
+
+## Structure du projet
+
+```
+/app
+  /(dashboard)/dashboard/   # Pages Brain, Planner, Tracker, Settings
+  /api/                     # Routes API (topics, scripts, publications, IA…)
+  /(auth)/                  # Pages login / register
+  /                         # Landing page publique
+
+/components
+  /brain/                   # TopicCard, TopicGrid, GenerateButton
+  /planner/                 # ContentSlot (carte + dialog script + téléprompter)
+  /tracker/                 # Graphiques et stats
+  /shared/                  # DashboardHome, StatusBadge, ChannelBadge…
+  /ui/                      # Composants shadcn/ui
+
+/lib
+  /db/                      # Schéma Drizzle + client PostgreSQL
+  /ai/                      # Prompts et appels IA
+  /telegram/                # Client notifications Telegram
+  /whatsapp/                # Client Evolution API
+  utils.ts                  # Utilitaires semaine ISO, constance, formats…
+
+/drizzle/                   # Migrations base de données
+/public/                    # Assets statiques
+/types/                     # Types TypeScript partagés
+```
+
+---
+
+## Scripts
+
+```bash
+npm run dev          # Serveur de développement
+npm run build        # Build production
+npm run lint         # Vérification ESLint
+npm run db:generate  # Générer les migrations Drizzle
+npm run db:migrate   # Appliquer les migrations
+npm run db:push      # Pousser le schéma directement (dev)
+npm run db:studio    # Ouvrir Drizzle Studio (UI base de données)
+```
+
+---
+
+## Déploiement
+
+Le projet est optimisé pour Vercel. Connectez votre repo, ajoutez les variables d'environnement dans les settings Vercel, et déployez.
+
+Pour la base de données en production, utilisez Supabase ou tout provider PostgreSQL compatible (Neon, Railway, etc.).
+
+---
+
+Développé pour les créateurs de contenu qui veulent construire une audience durable.
