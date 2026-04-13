@@ -178,10 +178,3 @@ RÈGLES DE FORMAT (impératives) :
 
 Réponds UNIQUEMENT avec le message, rien d'autre.`
 }
-
-export function buildMotivationalQuotePrompt(niches: string[]): string {
-  return `Tu es un coach motivationnel pour créateurs de contenu.
-Génère UNE citation motivationnelle courte (max 2 phrases) pour un créateur dans les niches : ${niches.join(', ')}.
-La citation doit être percutante, actionnable, et en lien direct avec la création de contenu.
-Réponds UNIQUEMENT avec la citation, sans guillemets ni attribution.`
-}

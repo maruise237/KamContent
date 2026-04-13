@@ -141,18 +141,10 @@ export const channelConnectionsRelations = relations(channelConnections, ({ one 
 
 // Types exportés
 export type Profile = typeof profiles.$inferSelect
-export type NewProfile = typeof profiles.$inferInsert
 export type Topic = typeof topics.$inferSelect
-export type NewTopic = typeof topics.$inferInsert
 export type Script = typeof scripts.$inferSelect
-export type NewScript = typeof scripts.$inferInsert
 export type Publication = typeof publications.$inferSelect
-export type NewPublication = typeof publications.$inferInsert
 export type ChannelConnection = typeof channelConnections.$inferSelect
-export type NewChannelConnection = typeof channelConnections.$inferInsert
-
-export interface TelegramConfig { chatId: string }
-export interface WhatsAppConfig { instanceName: string; phoneNumber?: string }
 
 export interface ScriptPoint {
   order: number

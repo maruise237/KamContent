@@ -42,17 +42,6 @@ export function dayIndexFromDateString(dateStr: string): number {
 }
 
 /**
- * Formate une date en français
- */
-export function formatDateFr(date: Date): string {
-  return new Intl.DateTimeFormat('fr-FR', {
-    weekday: 'long',
-    day: 'numeric',
-    month: 'long',
-  }).format(date)
-}
-
-/**
  * Retourne les 7 jours d'une semaine (lun → dim) avec un offset en semaines
  * offset=0 → semaine courante, offset=1 → semaine suivante, offset=-1 → semaine passée
  */
@@ -68,11 +57,6 @@ export function getWeekDays(offset = 0): Date[] {
     day.setDate(monday.getDate() + i)
     return day
   })
-}
-
-/** @deprecated use getWeekDays() */
-export function getCurrentWeekDays(): Date[] {
-  return getWeekDays(0)
 }
 
 /**
