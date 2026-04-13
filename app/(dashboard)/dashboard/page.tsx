@@ -65,6 +65,7 @@ export default async function DashboardPage() {
   const consistencyScore = calculateConsistencyScore(monthlyPubs, targetFrequency * 4)
 
   const nextTopic = weekTopics.find((t) => t.status === 'planned' || t.status === 'scripted') ?? null
+  const weekPublishedTopics = weekTopics.filter((t) => t.status === 'published')
   const userName = profile?.fullName ?? clerkUser?.firstName ?? 'Créateur'
 
   return (
@@ -75,6 +76,7 @@ export default async function DashboardPage() {
       streak={streak}
       consistencyScore={consistencyScore}
       nextTopic={nextTopic}
+      weekPublishedTopics={weekPublishedTopics}
     />
   )
 }

@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { motion } from 'framer-motion'
-import { Brain, Calendar, BarChart3, ArrowRight, Flame } from 'lucide-react'
+import { Brain, Calendar, BarChart3, ArrowRight, Flame, CheckCircle2, TrendingUp } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Progress } from '@/components/ui/progress'
@@ -17,6 +17,21 @@ interface DashboardHomeProps {
   streak: number
   consistencyScore: number
   nextTopic: Topic | null
+  weekPublishedTopics: Topic[]
+}
+
+function getWeekTip(published: number, target: number, streak: number): string {
+  const ratio = published / Math.max(target, 1)
+  if (ratio >= 1) {
+    if (streak >= 4) return `${streak} semaines de suite — tu construis quelque chose de solide. Continue.`
+    return "Objectif de la semaine atteint. C'est comme ça qu'on construit une audience."
+  }
+  if (ratio >= 0.5) {
+    const remaining = target - published
+    return `Plus que ${remaining} publication${remaining > 1 ? 's' : ''} pour atteindre ton objectif. La semaine n'est pas finie.`
+  }
+  if (published === 0) return "La semaine commence maintenant. Un seul post suffit à relancer la machine."
+  return "Chaque publication compte. Tu avances dans la bonne direction."
 }
 
 const SHORTCUTS = [
@@ -25,7 +40,7 @@ const SHORTCUTS = [
   { href: '/dashboard/tracker', icon: BarChart3, label: 'Tracker', description: 'Suivre la constance' },
 ]
 
-export function DashboardHome({ userName, weeklyPublished, weeklyTarget, streak, consistencyScore, nextTopic }: DashboardHomeProps) {
+export function DashboardHome({ userName, weeklyPublished, weeklyTarget, streak, consistencyScore, nextTopic, weekPublishedTopics }: DashboardHomeProps) {
   const weekProgress = Math.min(100, Math.round((weeklyPublished / Math.max(weeklyTarget, 1)) * 100))
   const hour = new Date().getHours()
   const greeting = hour < 1 ? 'Bonsoir' : hour < 6 ? 'Salut' : hour < 12 ? 'Bonjour' : hour < 18 ? 'Bon après-midi' : 'Bonsoir'
@@ -92,6 +107,38 @@ export function DashboardHome({ userName, weeklyPublished, weeklyTarget, streak,
           </Card>
         </motion.div>
       </div>
+
+      {/* Bilan de la semaine */}
+      <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.22 }}>
+        <div className="rounded-xl border border-border/60 bg-card px-5 py-4">
+          <div className="flex items-start gap-3">
+            <div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg ${weeklyPublished >= weeklyTarget ? 'bg-emerald-500/10' : 'bg-primary/10'}`}>
+              {weeklyPublished >= weeklyTarget
+                ? <CheckCircle2 className="h-5 w-5 text-emerald-400" />
+                : <TrendingUp className="h-5 w-5 text-primary" />
+              }
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-semibold mb-0.5">Bilan de la semaine</p>
+              <p className="text-sm text-muted-foreground leading-relaxed">
+                {getWeekTip(weeklyPublished, weeklyTarget, streak)}
+              </p>
+              {weekPublishedTopics.length > 0 && (
+                <div className="flex flex-wrap gap-1.5 mt-3">
+                  {weekPublishedTopics.map((t) => (
+                    <span
+                      key={t.id}
+                      className="text-[11px] bg-emerald-500/8 text-emerald-400/90 border border-emerald-500/15 rounded-md px-2 py-0.5 max-w-[220px] truncate"
+                    >
+                      ✓ {t.title}
+                    </span>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      </motion.div>
 
       {/* CTA si rien de planifié */}
       {!nextTopic && weeklyPublished === 0 && (

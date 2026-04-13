@@ -1,9 +1,9 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { motion } from 'framer-motion'
-import { AlertCircle, Brain, Check, Sparkles } from 'lucide-react'
+import { AlertCircle, Brain, Check, Sparkles, Repeat2 } from 'lucide-react'
 import { GenerateButton } from '@/components/brain/GenerateButton'
 import { TopicGrid } from '@/components/brain/TopicGrid'
 import { Button } from '@/components/ui/button'
@@ -38,9 +38,10 @@ function todayDayIndex(): number {
 
 export default function BrainPage() {
   const router = useRouter()
+  const searchParams = useSearchParams()
   const [topics, setTopics] = useState<Topic[]>([])
   const [selectedIds, setSelectedIds] = useState<string[]>([])
-  const [hints, setHints] = useState('')
+  const [hints, setHints] = useState(() => searchParams.get('hint') ?? '')
   const [filterFormat, setFilterFormat] = useState('')
   const [filterChannel, setFilterChannel] = useState('')
   const [generating, setGenerating] = useState(false)
@@ -192,9 +193,15 @@ export default function BrainPage() {
 
       {/* Zone d'idées — optionnelle */}
       <div className="rounded-lg border border-border bg-card p-4 space-y-2">
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
           <Sparkles className="h-4 w-4 text-primary" />
           <p className="text-sm font-medium">Tes idées (optionnel)</p>
+          {searchParams.get('hint') && (
+            <span className="inline-flex items-center gap-1 text-[11px] font-medium bg-[#29AAE2]/10 text-[#29AAE2] border border-[#29AAE2]/20 rounded-full px-2 py-0.5">
+              <Repeat2 className="h-3 w-3" />
+              Réutilisation depuis le Planner
+            </span>
+          )}
         </div>
         <Textarea
           placeholder="Ex : je veux parler de mes erreurs en tant que freelance, d'un outil IA que j'ai testé cette semaine, d'une astuce no-code…"

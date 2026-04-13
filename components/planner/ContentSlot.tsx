@@ -1,7 +1,8 @@
 'use client'
 
 import { useState } from 'react'
-import { Loader2, FileText, CheckSquare, Eye, Trash2, CalendarClock, Lock, SkipForward, Copy, Check, FileDown, RefreshCw, Maximize2, X, ChevronUp, ChevronDown } from 'lucide-react'
+import { useRouter } from 'next/navigation'
+import { Loader2, FileText, CheckSquare, Eye, Trash2, CalendarClock, Lock, SkipForward, Copy, Check, FileDown, RefreshCw, Maximize2, X, ChevronUp, ChevronDown, Repeat2 } from 'lucide-react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -40,6 +41,7 @@ export function ContentSlot({
   topic, script, dayStr, todayStr,
   onGenerateScript, onMarkPublished, onDelete, onMoveDate, generatingScript,
 }: ContentSlotProps) {
+  const router = useRouter()
   const [showScript, setShowScript]         = useState(false)
   const [showPublish, setShowPublish]       = useState(false)
   const [showReschedule, setShowReschedule] = useState(false)
@@ -131,11 +133,21 @@ export function ContentSlot({
             <StatusBadge status={topic.status} />
             <ChannelBadge channel={topic.channel} />
           </div>
-          {script && (
-            <Button size="sm" variant="ghost" className="h-6 px-2 text-xs" onClick={() => setShowScript(true)}>
-              <Eye className="h-3 w-3 mr-1" />Script
+          <div className="flex gap-1 flex-wrap">
+            {script && (
+              <Button size="sm" variant="ghost" className="h-6 px-2 text-xs" onClick={() => setShowScript(true)}>
+                <Eye className="h-3 w-3 mr-1" />Script
+              </Button>
+            )}
+            <Button
+              size="sm" variant="ghost"
+              className="h-6 px-2 text-xs text-[#29AAE2] hover:text-[#29AAE2]/80"
+              onClick={() => router.push(`/dashboard/brain?hint=${encodeURIComponent(topic.title)}`)}
+              title="Réutiliser ce sujet avec un nouvel angle"
+            >
+              <Repeat2 className="h-3 w-3 mr-1" />Réutiliser
             </Button>
-          )}
+          </div>
         </div>
 
         <ScriptDialog open={showScript} onClose={() => setShowScript(false)} topic={topic} script={script}
