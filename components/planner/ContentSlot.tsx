@@ -535,7 +535,7 @@ function ScriptDialog({ open, onClose, topic, script, onRegenerate, regenerating
     <>
     {typeof document !== 'undefined' && readerOverlay && createPortal(readerOverlay, document.body)}
 
-    <Dialog open={open} onOpenChange={onClose}>
+    <Dialog open={open && !showReader} onOpenChange={onClose}>
       <DialogContent className="flex flex-col overflow-hidden w-full max-w-2xl h-[100dvh] rounded-none sm:rounded-xl sm:h-auto sm:max-h-[85vh] m-0 sm:m-auto p-4 sm:p-6">
         <DialogHeader className="shrink-0">
           <div className="flex items-start justify-between gap-2 pr-6">
