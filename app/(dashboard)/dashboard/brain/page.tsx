@@ -39,6 +39,7 @@ function todayDayIndex(): number {
 export default function BrainPage() {
   const router = useRouter()
   const searchParams = useSearchParams()
+  const [hasHintFromPlanner] = useState(() => searchParams.get('hint') !== null)
   const [topics, setTopics] = useState<Topic[]>([])
   const [selectedIds, setSelectedIds] = useState<string[]>([])
   const [hints, setHints] = useState(() => searchParams.get('hint') ?? '')
@@ -196,7 +197,7 @@ export default function BrainPage() {
         <div className="flex items-center gap-2 flex-wrap">
           <Sparkles className="h-4 w-4 text-primary" />
           <p className="text-sm font-medium">Tes idées (optionnel)</p>
-          {searchParams.get('hint') && (
+          {hasHintFromPlanner && (
             <span className="inline-flex items-center gap-1 text-[11px] font-medium bg-[#29AAE2]/10 text-[#29AAE2] border border-[#29AAE2]/20 rounded-full px-2 py-0.5">
               <Repeat2 className="h-3 w-3" />
               Réutilisation depuis le Planner
